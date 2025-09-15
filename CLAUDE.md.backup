@@ -1,0 +1,38 @@
+# Global Claude Rules
+
+## Rules
+
+- IMPORTANT: Befoer you do any work, **you MUST view contexts or create contexts** in @.claude/tasks/ dir to get the current session's context (the file name is @.claude/tasks/context_session_{title}.md where {title} being the short description of the current context, if file doesn't exist, then create context file before conducting any work).
+- context_session_{title}.md should contain most of the context what we did, overall plan, and sub agents will continusly add context to the file.
+- After you finish the work, MUST update the relevant .claude/tasks/context_sesison_{title}.md file to make sure others can get full context of what you did.
+
+## Sub Agents
+
+Sub Agents will do research about the implementation, or write code; When passing tasks to subagent, make sure you pass the context file, e.g. `.claude/tasks/session_context_{title}.md`,
+After each subagent finished work, make sure you read the related documentation they created to get full context of the plan before you start executing.
+
+## Context files
+
+- The name of context file should be `.claude/tasks/context_session_{short description}.md`
+
+### Context file format
+
+```markdown
+# title
+
+short description
+
+## Date: YYYY-MM-DD
+
+## Tasks
+ - [ ] tasks to be excuted
+ <!-- When you have sub tasks, use nested todo list -->
+
+## ...
+...
+
+## References
+
+- refer the name of relevant document files in `.claude/docs/*.md`.
+
+```
