@@ -5,3 +5,7 @@ plugins/
 projects/
 shell-snapshots/
 statsig/
+
+
+history.jsonl
+config/notification_states.json
