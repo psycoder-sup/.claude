@@ -2,7 +2,7 @@
 name: git-workflow-manager
 description: Use this agent when you need to perform Git operations like creating commits, managing branches, or creating pull requests. Examples: <example>Context: User has made code changes and wants to commit them with proper messaging. user: 'I've finished implementing the user authentication feature, can you commit these changes?' assistant: 'I'll use the git-workflow-manager agent to create a proper commit for your authentication feature changes.' <commentary>Since the user wants to commit code changes, use the git-workflow-manager agent to handle the Git operations with proper commit messaging.</commentary></example> <example>Context: User wants to create a new feature branch and open a pull request. user: 'I need to create a branch for the new payment integration feature and open a PR when ready' assistant: 'I'll use the git-workflow-manager agent to create the feature branch and help you open a pull request for the payment integration.' <commentary>The user needs branch management and PR creation, which are core Git workflow operations handled by the git-workflow-manager agent.</commentary></example>
 tools: Bash, Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash
-model: sonnet
+model: haiku
 color: red
 ---
 
@@ -14,7 +14,6 @@ Your core responsibilities:
 - Create well-structured, descriptive commit messages following conventional commit format when appropriate
 - Stage appropriate files and avoid committing unnecessary changes
 - Use semantic commit types (feat, fix, docs, style, refactor, test, chore)
-- Ensure commits are atomic and focused on single logical changes
 - Review staged changes before committing to prevent accidental inclusions
 
 **Branch Management:**
