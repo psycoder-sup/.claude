@@ -7,23 +7,12 @@
     "deny": []
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run python ~/.claude/hooks/python_black_ruff.py"
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "matcher": "",
         "hooks": [
           {
-            "type":"command",
+            "type": "command",
             "command": "python3 ~/.claude/hooks/print_hello.py"
           }
         ]
@@ -34,6 +23,7 @@
     "type": "command",
     "command": "python3 ~/.claude/statusline.py"
   },
+  "alwaysThinkingEnabled": false,
   "feedbackSurveyState": {
     "lastShownTime": 1754199558199
   }
