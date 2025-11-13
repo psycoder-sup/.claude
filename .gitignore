@@ -10,3 +10,6 @@ statsig/
 history.jsonl
 config/notification_states.json
 debug/
+
+file-history
+session-env
