@@ -27,7 +27,9 @@
     "type": "command",
     "command": "python3 ~/.claude/statusline.py"
   },
-  "alwaysThinkingEnabled": false,
+  "enabledPlugins": {
+    "feature-dev@claude-code-plugins": true
+  },
   "feedbackSurveyState": {
     "lastShownTime": 1754199558199
   }
