@@ -13,3 +13,6 @@ debug/
 
 file-history
 session-env
+plans
+
+stats-cache.json
