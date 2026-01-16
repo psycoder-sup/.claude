@@ -10,6 +10,6 @@
     "command": "bash /Users/sanguk/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "task@psycoder-tools": false
+    "plugin-dev@claude-plugins-official": true
   }
 }
