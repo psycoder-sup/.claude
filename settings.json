@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo -e \"\\033]777;notify;Claude Code;Permission required\\007\""
+            "command": "(sleep 0.1 && printf '\\033]777;notify;Claude Code;Permission required\\007' > /dev/tty) &"
           }
         ]
       },
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo -e \"\\033]777;notify;Claude Code;Waiting for input\\007\""
+            "command": "(sleep 0.1 && printf '\\033]777;notify;Claude Code;Waiting for input\\007' > /dev/tty) &"
           }
         ]
       }
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo -e \"\\033]777;notify;Claude Code;Task completed\\007\""
+            "command": "(sleep 0.1 && printf '\\033]777;notify;Claude Code;Task completed\\007' > /dev/tty) &"
           }
         ]
       }
