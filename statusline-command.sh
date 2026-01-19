@@ -18,13 +18,57 @@ branch=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks branch --show
 # Get git status
 git_status=""
 if [ -n "$branch" ]; then
-  # Check for uncommitted changes
-  if ! git -c core.useBuiltinFSMonitor=false --no-optional-locks diff --quiet 2>/dev/null; then
-    git_status="✨"  # Modified files
-  elif ! git -c core.useBuiltinFSMonitor=false --no-optional-locks diff --cached --quiet 2>/dev/null; then
-    git_status="✅"  # Staged files
+  # Get file counts from git status --porcelain
+  status_output=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks status --porcelain 2>/dev/null)
+
+  staged=0
+  modified=0
+  untracked=0
+
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    x="${line:0:1}"
+    y="${line:1:1}"
+
+    # Staged changes (index)
+    case "$x" in
+      [MADRC]) ((staged++)) ;;
+    esac
+
+    # Unstaged changes (worktree)
+    case "$y" in
+      [MD]) ((modified++)) ;;
+    esac
+
+    # Untracked files
+    [ "$x" = "?" ] && ((untracked++))
+  done <<< "$status_output"
+
+  # Build file counts string
+  counts=""
+  [ $staged -gt 0 ] && counts="+$staged"
+  [ $modified -gt 0 ] && counts="$counts ~$modified"
+  [ $untracked -gt 0 ] && counts="$counts ?$untracked"
+  counts="${counts# }"  # Trim leading space
+
+  # Get ahead/behind info
+  ahead_behind=""
+  tracking=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks rev-parse --abbrev-ref @{upstream} 2>/dev/null)
+  if [ -n "$tracking" ]; then
+    ab=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks rev-list --left-right --count HEAD...@{upstream} 2>/dev/null)
+    ahead=$(echo "$ab" | cut -f1)
+    behind=$(echo "$ab" | cut -f2)
+    [ "$ahead" -gt 0 ] 2>/dev/null && ahead_behind="↑$ahead"
+    [ "$behind" -gt 0 ] 2>/dev/null && ahead_behind="$ahead_behind↓$behind"
+  fi
+
+  # Combine status
+  if [ -n "$counts" ] || [ -n "$ahead_behind" ]; then
+    git_status="$counts"
+    [ -n "$counts" ] && [ -n "$ahead_behind" ] && git_status="$git_status "
+    git_status="$git_status$ahead_behind"
   else
-    git_status="✓"   # Clean
+    git_status="✓"
   fi
 fi
 
