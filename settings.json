@@ -16,5 +16,37 @@
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
     "base@psycoder-tools": false
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo -e \"\\033]777;notify;Claude Code;Permission required\\007\""
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo -e \"\\033]777;notify;Claude Code;Waiting for input\\007\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo -e \"\\033]777;notify;Claude Code;Task completed\\007\""
+          }
+        ]
+      }
+    ]
   }
 }
