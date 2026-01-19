@@ -3,6 +3,9 @@
     "allow": [
       "WebFetch",
       "Bash(ls:*)"
+    ],
+    "deny": [
+      "Bash(git -C:*)"
     ]
   },
   "statusLine": {
