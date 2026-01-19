@@ -9,26 +9,11 @@ TOP_PANE_CMD="${3:-claude}"  # Command to run in top pane (default: claude)
 tmux has-session -t "$SESSION_NAME" 2>/dev/null
 
 if [ $? != 0 ]; then
-    # Create new session
-    tmux new-session -d -s "$SESSION_NAME" -c "$WORKING_DIR"
-
-    # Split horizontally (top/bottom) with 30:70 ratio
-    tmux split-window -v -p 70 -c "$WORKING_DIR"
-
-    # Wait for shells to initialize
-    sleep 0.5
-
-    # Run claude in bottom pane (pane 2) - Escape+i for vim mode shells
-    tmux send-keys -t "$SESSION_NAME:1.2" Escape "i" "claude" Enter
-
-    # # Run command in top pane if specified - Escape+i for vim mode shells
-    # if [ -n "$TOP_PANE_CMD" ]; then
-    #     tmux send-keys -t "$SESSION_NAME:1.1" Escape "i" "$TOP_PANE_CMD" Enter
-    # fi
-
-    # Focus on top pane (pane 1)
-    tmux select-pane -t "$SESSION_NAME:1.1"
+    # Create session and setup in one command (so tmux knows terminal size)
+    tmux new-session -s "$SESSION_NAME" -c "$WORKING_DIR" \; \
+        split-window -v -p 70 -c "$WORKING_DIR" \; \
+        send-keys Escape "i" "claude" Enter \; \
+        select-pane -t 1
+else
+    tmux attach-session -t "$SESSION_NAME"
 fi
-
-# Attach to session
-tmux attach-session -t "$SESSION_NAME"
