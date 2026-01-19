@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "WebFetch",
+      "SebSearch",
       "Bash(ls:*)"
     ],
     "deny": [
