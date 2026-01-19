@@ -7,9 +7,10 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash /Users/sanguk/.claude/statusline-command.sh"
+    "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true
+    "plugin-dev@claude-plugins-official": true,
+    "base@psycoder-tools": false
   }
 }
