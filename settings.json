@@ -27,13 +27,15 @@
             "command": "printf '\\033]777;notify;Claude Code;Permission required\\007' > /dev/tty &"
           }
         ]
-      },
+      }
+    ],
+    "PreToolUse": [
       {
-        "matcher": "idle_prompt",
+        "matcher": "AskUserQuestion",
         "hooks": [
           {
             "type": "command",
-            "command": "printf '\\033]777;notify;Claude Code;Waiting for input\\007' > /dev/tty &"
+            "command": "printf '\\033]777;notify;Claude Code;Question for you\\007' > /dev/tty &"
           }
         ]
       }
