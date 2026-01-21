@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: This skill should be used when the user asks to "create a commit", "make a pull request", "understand branching strategies", "use conventional commits", or needs guidance on git best practices and safe git operations.
+description: This skill should be used when the user asks to "create a commit", "commit and push", "make a pull request", "understand branching strategies", "use conventional commits", or needs guidance on git best practices and safe git operations.
 allowed-tools: Task, Read, Glob, Grep, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*)
 user-invocable: false
 ---
