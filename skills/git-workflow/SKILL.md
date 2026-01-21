@@ -2,7 +2,7 @@
 name: git-workflow
 description: This skill should be used when the user asks to "create a commit", "commit and push", "make a pull request", "understand branching strategies", "use conventional commits", or needs guidance on git best practices and safe git operations.
 allowed-tools: Task, Read, Glob, Grep, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*)
-user-invocable: false
+# user-invocable: false
 ---
 
 # Git Workflow Skill
@@ -44,15 +44,13 @@ All commits follow this format:
 
 ### Step 1: Analyze Changes
 
-Use the Task tool with `subagent_type: git-operations` to analyze the repository:
+Use the Task tool with `subagent_type: diff-analyzer` to analyze the repository:
 
 ```
-Prompt: Analyze the current git changes and generate commit information.
-- Run git status and git diff to understand the changes
-- Group related changes logically if needed
-- Generate commit message(s) using conventional commit format with emojis
-- Return the files to stage and the commit message(s)
+Prompt: Analyze the current git changes. Group into logical commits if needed.
 ```
+
+The diff-analyzer agent will return structured analysis with type, scope, summary, and files.
 
 ### Step 2: Create Commit(s)
 
@@ -77,17 +75,13 @@ EOF
 
 ### Step 1: Analyze Branch Changes
 
-Use the Task tool with `subagent_type: git-operations`:
+Use the Task tool with `subagent_type: diff-analyzer`:
 
 ```
-Prompt: Analyze the branch changes and generate pull request information.
-- Check current branch and commits since main/master
-- Run git diff to understand all changes
-- Read changed files if needed for full context
-- Generate a PR title and comprehensive description
-- Return the PR title, description, and any files that need to be pushed
-- Do NOT create the PR yet - only return the proposed information
+Prompt: Analyze this branch for a pull request.
 ```
+
+The diff-analyzer agent will return branch analysis with summary, changes, and testing suggestions.
 
 ### Step 2: Create Pull Request
 
