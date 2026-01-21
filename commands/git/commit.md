@@ -2,6 +2,7 @@
 argument-hint: [-a|--auto] [message]
 description: Create well-formatted commits with conventional commit format and emoji. Automatically groups related changes into logical commits.
 allowed-tools: Task, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*)
+disable-model-invocation: true
 ---
 
 # Smart Git Commit

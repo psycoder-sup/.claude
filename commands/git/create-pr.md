@@ -2,6 +2,7 @@
 argument-hint: [-a|--auto] [message]
 description: Create well-formatted pull request to remote repository
 allowed-tools: Task, AskUserQuestion, Bash(git push:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git diff:*), Bash(gh pr create:*)
+disable-model-invocation: true
 ---
 
 # Smart Git Pull Request Creation

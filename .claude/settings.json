@@ -4,8 +4,7 @@
       "WebSearch",
       "WebFetch",
       "Skill(plugin-dev:skill-development)"
-    ],
-    "defaultMode": "plan"
+    ]
   },
   "enabledPlugins": {
     "base@psycoder-tools": true
