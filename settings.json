@@ -9,14 +9,7 @@
       "Bash(git -C:*)"
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
-  },
-  "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true,
-    "base@psycoder-tools": false
-  },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -24,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '\\033]777;notify;Claude Code;Permission required\\007' > /dev/tty &"
+            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Permission required\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Permission required\\007') > /dev/tty &"
           }
         ]
       }
@@ -35,9 +28,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '\\033]777;notify;Claude Code;Question for you\\007' > /dev/tty &"
+            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Question for you\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Question for you\\007') > /dev/tty &"
           }
         ]
+      },
+      {
+          "matcher": "Bash",
+          "hooks": [
+              {
+                  "type": "command",
+                  "command": ".claude/scripts/validate-git-command.sh",
+                  "timeout": 5000
+              }
+          ]
       }
     ],
     "Stop": [
@@ -45,10 +48,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '\\033]777;notify;Claude Code;Task completed\\007' > /dev/tty &"
+            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Task completed\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Task completed\\007') > /dev/tty &"
           }
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "plugin-dev@claude-plugins-official": true,
+    "base@psycoder-tools": false
   }
 }
