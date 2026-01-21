@@ -53,7 +53,7 @@ create_worktree() {
         tmux new-window -n "$branch" -c "$worktree_path" \; \
             split-window -v -p 70 -c "$worktree_path" \; \
             send-keys "claude" Enter \; \
-            select-pane -t 0
+            select-pane -U
         echo "Opened new tmux window '$branch' with 2-pane layout (top: shell, bottom: Claude)"
     else
         echo "Not inside a tmux session. To open worktree manually:"
