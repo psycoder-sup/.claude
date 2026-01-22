@@ -9,7 +9,9 @@ get_project_name() {
     local remote_url
     remote_url=$(git remote get-url origin 2>/dev/null || echo "")
     if [ -n "$remote_url" ]; then
-        echo "$remote_url" | sed 's/.*[/:]\([^/]*\)\.git$/\1/' | sed 's/\.git$//'
+        # Remove .git suffix if present, then get the last path component
+        remote_url="${remote_url%.git}"
+        basename "$remote_url"
     else
         basename "$(pwd)"
     fi
