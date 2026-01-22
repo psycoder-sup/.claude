@@ -1,14 +1,14 @@
 ---
 name: worktree
-description: This skill should be used when the user asks to "create a worktree", "set up a worktree workspace", "work on multiple branches", "manage worktrees", "list worktrees", "remove worktree", or mentions needing to work on multiple branches simultaneously with tmux integration.
+description: This skill should be used when the user asks to "create a worktree", "list worktrees", or "remove worktree". Only handles create, list, and remove operations - no planning or other tasks.
 model: haiku
 user-invocable: true
-allowed-tools: AskUserQuestion, Bash(~/.claude/skills/worktree/scripts/worktree.sh:*), Bash(~/.claude/skills/worktree/scripts/check-pr-merged.sh:*), Bash(git branch:*), Bash(git worktree list:*), Bash(gh pr view:*)
+allowed-tools: AskUserQuestion, Bash(~/.claude/skills/worktree/scripts/worktree.sh:*), Bash(~/.claude/skills/worktree/scripts/check-pr-merged.sh:*), Bash(git branch:*)
 ---
 
-# Git Worktree Workspace Manager
+# Git Worktree Manager
 
-This skill manages git worktrees with tmux terminal integration, enabling work on multiple branches simultaneously without stashing changes.
+This skill ONLY handles worktree operations: **create**, **list**, and **remove**. Do NOT perform any planning, research, or other unrelated tasks.
 
 ## Overview
 
@@ -137,3 +137,12 @@ When removing a worktree, follow these steps:
 - Each worktree has its own working directory and index
 - Use `Ctrl+b n` / `Ctrl+b p` to switch between tmux windows (or your tmux prefix)
 - If tmux is not running, the script still creates the worktree and shows the path
+
+## Scope Restriction
+
+This skill ONLY performs:
+- **Create** worktrees
+- **List** worktrees
+- **Remove** worktrees (including PR merge check and branch deletion)
+
+Do NOT use this skill for planning, task management, or any other operations.
