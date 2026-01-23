@@ -1,109 +1,202 @@
 #!/bin/bash
-
-# Read JSON input from stdin
-input=$(cat)
-
-# Get data from JSON input
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir')
-model_name=$(echo "$input" | jq -r '.model.display_name')
-output_style=$(echo "$input" | jq -r '.output_style.name')
-
-# Get the project name (basename of project directory)
-project_name=$(basename "$project_dir")
-
-# Get the git branch name (skip optional locks for performance)
-cd "$project_dir" 2>/dev/null
-branch=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks branch --show-current 2>/dev/null)
-
-# Get git status
-git_status=""
-if [ -n "$branch" ]; then
-  # Get file counts from git status --porcelain
-  status_output=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks status --porcelain 2>/dev/null)
-
-  staged=0
-  modified=0
-  untracked=0
-
-  while IFS= read -r line; do
-    [ -z "$line" ] && continue
-    x="${line:0:1}"
-    y="${line:1:1}"
-
-    # Staged changes (index)
-    case "$x" in
-      [MADRC]) ((staged++)) ;;
-    esac
-
-    # Unstaged changes (worktree)
-    case "$y" in
-      [MD]) ((modified++)) ;;
-    esac
-
-    # Untracked files
-    [ "$x" = "?" ] && ((untracked++))
-  done <<< "$status_output"
-
-  # Build file counts string
-  counts=""
-  [ $staged -gt 0 ] && counts="+$staged"
-  [ $modified -gt 0 ] && counts="$counts ~$modified"
-  [ $untracked -gt 0 ] && counts="$counts ?$untracked"
-  counts="${counts# }"  # Trim leading space
-
-  # Get ahead/behind info
-  ahead_behind=""
-  tracking=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks rev-parse --abbrev-ref @{upstream} 2>/dev/null)
-  if [ -n "$tracking" ]; then
-    ab=$(git -c core.useBuiltinFSMonitor=false --no-optional-locks rev-list --left-right --count HEAD...@{upstream} 2>/dev/null)
-    ahead=$(echo "$ab" | cut -f1)
-    behind=$(echo "$ab" | cut -f2)
-    [ "$ahead" -gt 0 ] 2>/dev/null && ahead_behind="↑$ahead"
-    [ "$behind" -gt 0 ] 2>/dev/null && ahead_behind="$ahead_behind↓$behind"
-  fi
-
-  # Combine status
-  if [ -n "$counts" ] || [ -n "$ahead_behind" ]; then
-    git_status="$counts"
-    [ -n "$counts" ] && [ -n "$ahead_behind" ] && git_status="$git_status "
-    git_status="$git_status$ahead_behind"
-  else
-    git_status="✓"
-  fi
-fi
-
-# Calculate context window percentage if available
-context_info=""
-usage=$(echo "$input" | jq '.context_window.current_usage')
-if [ "$usage" != "null" ]; then
-  current=$(echo "$usage" | jq '.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens')
-  size=$(echo "$input" | jq '.context_window.context_window_size')
-  pct=$((current * 100 / size))
-
-  # Choose emoji based on percentage
-  if [ $pct -lt 50 ]; then
-    context_emoji="🟢"
-  elif [ $pct -lt 75 ]; then
-    context_emoji="🟡"
-  else
-    context_emoji="🔴"
-  fi
-  context_info=$(printf " %s %d%%" "$context_emoji" "$pct")
-fi
-
-# Color codes (will appear dimmed in status line)
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-RESET='\033[0m'
-
-# Build the colorful status line with emojis
-if [ -n "$branch" ]; then
-  printf "${CYAN}📁 %s${RESET} ${MAGENTA}🌿 %s %s${RESET}${YELLOW}%s${RESET} ${BLUE}🤖 %s${RESET}" \
-    "$project_name" "$branch" "$git_status" "$context_info" "$model_name"
+config_file="$HOME/.claude/statusline-config.txt"
+if [ -f "$config_file" ]; then
+  source "$config_file"
+  show_dir=$SHOW_DIRECTORY
+  show_branch=$SHOW_BRANCH
+  show_model=$SHOW_MODEL
+  show_context=$SHOW_CONTEXT
+  show_usage=$SHOW_USAGE
+  show_bar=$SHOW_PROGRESS_BAR
+  show_reset=$SHOW_RESET_TIME
 else
-  printf "${CYAN}📁 %s${RESET}${YELLOW}%s${RESET} ${BLUE}🤖 %s${RESET}" \
-    "$project_name" "$context_info" "$model_name"
+  show_dir=1
+  show_branch=1
+  show_model=1
+  show_context=1
+  show_usage=1
+  show_bar=1
+  show_reset=1
 fi
+
+input=$(cat)
+current_dir_path=$(echo "$input" | grep -o '"current_dir":"[^"]*"' | sed 's/"current_dir":"//;s/"$//')
+current_dir=$(basename "$current_dir_path")
+model_name=$(echo "$input" | grep -o '"display_name":"[^"]*"' | sed 's/"display_name":"//;s/"$//')
+context_used=$(echo "$input" | grep -o '"used_percentage":[0-9.]*' | sed 's/"used_percentage"://' | cut -d'.' -f1)
+BLUE=$'\033[0;34m'
+GREEN=$'\033[0;32m'
+GRAY=$'\033[0;90m'
+YELLOW=$'\033[0;33m'
+RESET=$'\033[0m'
+
+# 10-level gradient: dark green → deep red
+LEVEL_1=$'\033[38;5;22m'   # dark green
+LEVEL_2=$'\033[38;5;28m'   # soft green
+LEVEL_3=$'\033[38;5;34m'   # medium green
+LEVEL_4=$'\033[38;5;100m'  # green-yellowish dark
+LEVEL_5=$'\033[38;5;142m'  # olive/yellow-green dark
+LEVEL_6=$'\033[38;5;178m'  # muted yellow
+LEVEL_7=$'\033[38;5;172m'  # muted yellow-orange
+LEVEL_8=$'\033[38;5;166m'  # darker orange
+LEVEL_9=$'\033[38;5;160m'  # dark red
+LEVEL_10=$'\033[38;5;124m' # deep red
+
+# Build components (without separators)
+dir_text=""
+if [ "$show_dir" = "1" ]; then
+  dir_text="${BLUE}${current_dir}${RESET}"
+fi
+
+branch_text=""
+if [ "$show_branch" = "1" ]; then
+  if git rev-parse --git-dir > /dev/null 2>&1; then
+    branch=$(git branch --show-current 2>/dev/null)
+    [ -n "$branch" ] && branch_text="${GREEN}⎇ ${branch}${RESET}"
+  fi
+fi
+
+model_text=""
+if [ "$show_model" = "1" ] && [ -n "$model_name" ]; then
+  model_text="${GRAY}${model_name}${RESET}"
+fi
+
+context_text=""
+if [ "$show_context" = "1" ] && [ -n "$context_used" ]; then
+  if [ "$context_used" -le 10 ]; then
+    ctx_color="$LEVEL_1"
+  elif [ "$context_used" -le 20 ]; then
+    ctx_color="$LEVEL_2"
+  elif [ "$context_used" -le 30 ]; then
+    ctx_color="$LEVEL_3"
+  elif [ "$context_used" -le 40 ]; then
+    ctx_color="$LEVEL_4"
+  elif [ "$context_used" -le 50 ]; then
+    ctx_color="$LEVEL_5"
+  elif [ "$context_used" -le 60 ]; then
+    ctx_color="$LEVEL_6"
+  elif [ "$context_used" -le 70 ]; then
+    ctx_color="$LEVEL_7"
+  elif [ "$context_used" -le 80 ]; then
+    ctx_color="$LEVEL_8"
+  elif [ "$context_used" -le 90 ]; then
+    ctx_color="$LEVEL_9"
+  else
+    ctx_color="$LEVEL_10"
+  fi
+  context_text="${ctx_color}Ctx: ${context_used}%${RESET}"
+fi
+
+usage_text=""
+if [ "$show_usage" = "1" ]; then
+  swift_result=$(swift "$HOME/.claude/fetch-claude-usage.swift" 2>/dev/null)
+
+  if [ $? -eq 0 ] && [ -n "$swift_result" ]; then
+    utilization=$(echo "$swift_result" | cut -d'|' -f1)
+    resets_at=$(echo "$swift_result" | cut -d'|' -f2)
+
+    if [ -n "$utilization" ] && [ "$utilization" != "ERROR" ]; then
+      if [ "$utilization" -le 10 ]; then
+        usage_color="$LEVEL_1"
+      elif [ "$utilization" -le 20 ]; then
+        usage_color="$LEVEL_2"
+      elif [ "$utilization" -le 30 ]; then
+        usage_color="$LEVEL_3"
+      elif [ "$utilization" -le 40 ]; then
+        usage_color="$LEVEL_4"
+      elif [ "$utilization" -le 50 ]; then
+        usage_color="$LEVEL_5"
+      elif [ "$utilization" -le 60 ]; then
+        usage_color="$LEVEL_6"
+      elif [ "$utilization" -le 70 ]; then
+        usage_color="$LEVEL_7"
+      elif [ "$utilization" -le 80 ]; then
+        usage_color="$LEVEL_8"
+      elif [ "$utilization" -le 90 ]; then
+        usage_color="$LEVEL_9"
+      else
+        usage_color="$LEVEL_10"
+      fi
+
+      if [ "$show_bar" = "1" ]; then
+        if [ "$utilization" -eq 0 ]; then
+          filled_blocks=0
+        elif [ "$utilization" -eq 100 ]; then
+          filled_blocks=10
+        else
+          filled_blocks=$(( (utilization * 10 + 50) / 100 ))
+        fi
+        [ "$filled_blocks" -lt 0 ] && filled_blocks=0
+        [ "$filled_blocks" -gt 10 ] && filled_blocks=10
+        empty_blocks=$((10 - filled_blocks))
+
+        # Build progress bar safely without seq
+        progress_bar=" "
+        i=0
+        while [ $i -lt $filled_blocks ]; do
+          progress_bar="${progress_bar}▓"
+          i=$((i + 1))
+        done
+        i=0
+        while [ $i -lt $empty_blocks ]; do
+          progress_bar="${progress_bar}░"
+          i=$((i + 1))
+        done
+      else
+        progress_bar=""
+      fi
+
+      reset_time_display=""
+      if [ "$show_reset" = "1" ] && [ -n "$resets_at" ] && [ "$resets_at" != "null" ]; then
+        iso_time=$(echo "$resets_at" | sed 's/\.[0-9]*Z$//')
+        epoch=$(date -ju -f "%Y-%m-%dT%H:%M:%S" "$iso_time" "+%s" 2>/dev/null)
+
+        if [ -n "$epoch" ]; then
+          # Detect system time format (12h vs 24h) from macOS locale preferences
+          time_format=$(defaults read -g AppleICUForce24HourTime 2>/dev/null)
+          if [ "$time_format" = "1" ]; then
+            # 24-hour format
+            reset_time=$(date -r "$epoch" "+%H:%M" 2>/dev/null)
+          else
+            # 12-hour format (default)
+            reset_time=$(date -r "$epoch" "+%I:%M %p" 2>/dev/null)
+          fi
+          [ -n "$reset_time" ] && reset_time_display=$(printf " → Reset: %s" "$reset_time")
+        fi
+      fi
+
+      usage_text="${usage_color}Usage: ${utilization}%${progress_bar}${reset_time_display}${RESET}"
+    else
+      usage_text="${YELLOW}Usage: ~${RESET}"
+    fi
+  else
+    usage_text="${YELLOW}Usage: ~${RESET}"
+  fi
+fi
+
+output=""
+separator="${GRAY} │ ${RESET}"
+
+[ -n "$dir_text" ] && output="${dir_text}"
+
+if [ -n "$branch_text" ]; then
+  [ -n "$output" ] && output="${output}${separator}"
+  output="${output}${branch_text}"
+fi
+
+if [ -n "$model_text" ]; then
+  [ -n "$output" ] && output="${output}${separator}"
+  output="${output}${model_text}"
+fi
+
+if [ -n "$context_text" ]; then
+  [ -n "$output" ] && output="${output}${separator}"
+  output="${output}${context_text}"
+fi
+
+if [ -n "$usage_text" ]; then
+  [ -n "$output" ] && output="${output}${separator}"
+  output="${output}${usage_text}"
+fi
+
+printf "%s\n" "$output"
