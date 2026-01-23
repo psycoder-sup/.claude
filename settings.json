@@ -5,7 +5,7 @@
         "hooks" : [
           {
             "type" : "command",
-            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Task completed\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Task completed\\007') > \/dev\/tty &"
+            "command" : "if [ -n \"$TMUX\" ]; then tmux list-clients -F '#{client_tty}' | while read tty; do printf '\\033]777;notify;Claude Code;Task completed\\007' > \"$tty\"; done; else printf '\\033]777;notify;Claude Code;Task completed\\007' > /dev/tty; fi &"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks" : [
           {
             "type" : "command",
-            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Question for you\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Question for you\\007') > \/dev\/tty &"
+            "command" : "if [ -n \"$TMUX\" ]; then tmux list-clients -F '#{client_tty}' | while read tty; do printf '\\033]777;notify;Claude Code;Question for you\\007' > \"$tty\"; done; else printf '\\033]777;notify;Claude Code;Question for you\\007' > /dev/tty; fi &"
           }
         ]
       },
@@ -37,7 +37,7 @@
         "hooks" : [
           {
             "type" : "command",
-            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Permission required\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Permission required\\007') > \/dev\/tty &"
+            "command" : "if [ -n \"$TMUX\" ]; then tmux list-clients -F '#{client_tty}' | while read tty; do printf '\\033]777;notify;Claude Code;Permission required\\007' > \"$tty\"; done; else printf '\\033]777;notify;Claude Code;Permission required\\007' > /dev/tty; fi &"
           }
         ]
       }
