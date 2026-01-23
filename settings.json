@@ -1,65 +1,65 @@
 {
-  "permissions": {
-    "allow": [
-      "WebFetch",
-      "WebSearch",
-      "Bash(ls:*)"
-    ],
-    "deny": [
-      "Bash(git -C:*)"
-    ]
-  },
-  "model": "opus",
-  "hooks": {
-    "Notification": [
+  "hooks" : {
+    "Stop" : [
       {
-        "matcher": "permission_prompt",
-        "hooks": [
+        "hooks" : [
           {
-            "type": "command",
-            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Permission required\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Permission required\\007') > /dev/tty &"
+            "type" : "command",
+            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Task completed\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Task completed\\007') > \/dev\/tty &"
           }
         ]
       }
     ],
-    "PreToolUse": [
+    "PreToolUse" : [
       {
-        "matcher": "AskUserQuestion",
-        "hooks": [
+        "matcher" : "AskUserQuestion",
+        "hooks" : [
           {
-            "type": "command",
-            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Question for you\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Question for you\\007') > /dev/tty &"
+            "type" : "command",
+            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Question for you\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Question for you\\007') > \/dev\/tty &"
           }
         ]
       },
       {
-          "matcher": "Bash",
-          "hooks": [
-              {
-                  "type": "command",
-                  "command": ".claude/scripts/validate-git-command.sh",
-                  "timeout": 5000
-              }
-          ]
+        "matcher" : "Bash",
+        "hooks" : [
+          {
+            "type" : "command",
+            "command" : "~\/.claude\/scripts\/validate-git-command.sh",
+            "timeout" : 5000
+          }
+        ]
       }
     ],
-    "Stop": [
+    "Notification" : [
       {
-        "hooks": [
+        "matcher" : "permission_prompt",
+        "hooks" : [
           {
-            "type": "command",
-            "command": "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Task completed\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Task completed\\007') > /dev/tty &"
+            "type" : "command",
+            "command" : "([ -n \"$TMUX\" ] && printf '\\033Ptmux;\\033\\033]777;notify;Claude Code;Permission required\\007\\033\\\\' || printf '\\033]777;notify;Claude Code;Permission required\\007') > \/dev\/tty &"
           }
         ]
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
+  "model" : "opus",
+  "statusLine" : {
+    "type" : "command",
+    "command" : "bash \/Users\/sanguk\/.claude\/statusline-command.sh"
   },
-  "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true,
-    "base@psycoder-tools": false
+  "enabledPlugins" : {
+    "base@psycoder-tools" : false,
+    "plugin-dev@claude-plugins-official" : true
+  },
+  "permissions" : {
+    "allow" : [
+      "WebFetch",
+      "WebSearch",
+      "Bash(ls:*)"
+    ],
+    "deny" : [
+      "Bash(git -C:*)"
+    ]
   }
 }
