@@ -1,4 +1,16 @@
 {
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": [
+      "Brewing",
+      "Steaming",
+      "Frothing",
+      "Grinding",
+      "Pouring",
+      "Blending",
+      "Serving"
+    ]
+  },
   "permissions": {
     "allow": [
       "WebFetch",
@@ -62,7 +74,6 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "base@psycoder-tools": false,
     "plugin-dev@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true
   }

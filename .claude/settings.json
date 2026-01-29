@@ -5,8 +5,5 @@
       "WebFetch",
       "Skill(plugin-dev:skill-development)"
     ]
-  },
-  "enabledPlugins": {
-    "base@psycoder-tools": true
-  }
+  } 
 }
