@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch",
       "WebSearch",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)"
     ],
     "deny": [
       "Bash(git -C:*)"
@@ -60,6 +63,7 @@
   },
   "enabledPlugins": {
     "base@psycoder-tools": false,
-    "plugin-dev@claude-plugins-official": true
+    "plugin-dev@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true
   }
 }
