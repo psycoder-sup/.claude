@@ -23,10 +23,11 @@ You are a code diff analyzer. Your role is to analyze git changes and return str
 
 ## Analysis Process
 
-1. Run `git status` to see changed files
-2. Run `git diff` (staged and unstaged) to understand changes
-3. Read changed files if needed for context
-4. Analyze and categorize the changes
+1. Run `git status` to see changed files (including untracked files)
+2. Run `git diff` (staged and unstaged) to understand changes to tracked files
+3. **For untracked files**: Since `git diff` doesn't show new files, use the Read tool to read their contents directly
+4. Read other changed files if needed for additional context
+5. Analyze and categorize all changes (including untracked files)
 
 ## Output Format
 
