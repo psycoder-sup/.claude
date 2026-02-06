@@ -22,9 +22,11 @@
     ],
     "deny": [
       "Bash(git -C:*)"
+    ],
+    "ask": [
+      "Bash(rm:*)"
     ]
   },
-  "model": "opus",
   "hooks": {
     "Stop": [
       {
@@ -74,7 +76,8 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true
+    "plugin-dev@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": true
   }
 }
