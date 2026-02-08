@@ -18,30 +18,33 @@ $ARGUMENTS
 ## Argument Parsing
 
 1. Split `$ARGUMENTS` into tokens
-2. Extract the `-y` flag if present — this enables **auto-accept** mode (skip all confirmations)
+2. Extract flags if present:
+   - `-y` — enables **auto-accept** mode (skip all confirmations)
+   - `-A` — enables **all-changes** mode (include all unstaged and untracked files in the analysis, group them into logical commits)
 3. Remaining tokens are **actions**: `commit`, `push`, `pr`
 4. If no actions are provided, show the **Usage Help** section below and stop
 
 ### Examples
 
-| Input | Actions | Auto-accept |
-|-------|---------|-------------|
-| `commit` | commit | no |
-| `commit -y` | commit | yes |
-| `commit push` | commit, push | no |
-| `commit push -y` | commit, push | yes |
-| `pr` | pr | no |
-| `pr -y` | pr | yes |
-| `commit pr` | commit, pr | no |
-| `commit pr -y` | commit, pr | yes |
-| `commit push pr -y` | commit, push, pr | yes |
+| Input | Actions | Auto-accept | All-changes |
+|-------|---------|-------------|-------------|
+| `commit` | commit | no | no |
+| `commit -y` | commit | yes | no |
+| `commit -A` | commit | no | yes |
+| `commit -A -y` | commit | yes | yes |
+| `commit push` | commit, push | no | no |
+| `commit push -y` | commit, push | yes | no |
+| `pr` | pr | no | no |
+| `pr -y` | pr | yes | no |
+| `commit pr -y` | commit, pr | yes | no |
+| `commit push pr -A -y` | commit, push, pr | yes | yes |
 
 ## Usage Help
 
 If no actions are provided, display:
 
 ```
-Usage: /git <actions> [-y]
+Usage: /git <actions> [-y] [-A]
 
 Actions (combinable):
   commit   Analyze changes and create conventional commit(s)
@@ -50,10 +53,14 @@ Actions (combinable):
 
 Flags:
   -y       Auto-accept (skip confirmations)
+  -A       All-changes: include all unstaged and untracked files,
+           group them into logical commits automatically
 
 Examples:
-  /git commit          Commit with confirmation
-  /git commit -y       Commit without confirmation
+  /git commit          Analyze changes and commit with confirmation
+  /git commit -y       Analyze changes and commit without confirmation
+  /git commit -A       Analyze ALL unstaged/untracked changes, group into logical commits
+  /git commit -A -y    Same as above, skip confirmations
   /git commit push     Commit then push
   /git pr              Create a pull request
   /git commit pr -y    Commit then create PR, no confirmations
@@ -89,15 +96,19 @@ All commits follow this format:
 
 Use the Task tool with `subagent_type: diff-analyzer` to analyze the repository:
 
+- **Default mode**: Analyze changes from the current session, or follow user-provided instructions if given, and create commit(s) accordingly.
+- **All-changes mode (`-A`)**: Analyze ALL changes including unstaged modifications and untracked files. Group them into multiple logical commits based on related functionality, scope, or purpose.
+
 ```
 Prompt: Analyze the current git changes. Group into logical commits if needed.
+(If -A: also include all untracked files in the analysis.)
 ```
 
 The diff-analyzer agent will return structured analysis with type, scope, summary, and files.
 
 ### Step 2: Propose Commit(s)
 
-Display the proposed files to stage and commit message(s) to the user.
+Display the proposed files to stage and commit message(s) to the user. When `-A` is used, there will typically be multiple commits — each grouping related changes together.
 
 ### Step 3: Confirm
 
@@ -106,8 +117,10 @@ Display the proposed files to stage and commit message(s) to the user.
 
 ### Step 4: Execute
 
-Stage files and create commit using HEREDOC format:
+For each proposed commit, stage only the relevant files and create the commit using HEREDOC format:
+
 ```bash
+git add <file1> <file2> ...
 git commit -m "$(cat <<'EOF'
 <emoji> <type>(<scope>): <description>
 
@@ -116,9 +129,11 @@ EOF
 )"
 ```
 
+When `-A` produces multiple logical commits, repeat this stage-and-commit cycle for each group sequentially.
+
 ### Step 5: Verify
 
-Show result with `git log -1`.
+Show result with `git log --oneline -<number of commits created>`.
 
 ## Action: push
 
