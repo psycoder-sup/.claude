@@ -1,7 +1,7 @@
 ---
 name: git
 description: This skill should be used when the user asks to "create a commit", "commit and push", "make a pull request", "understand branching strategies", "use conventional commits", or needs guidance on git best practices and safe git operations.
-allowed-tools: Task, Read, Glob, Grep, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*), Bash(git rev-list:*)
+allowed-tools: Read, Glob, Grep, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*), Bash(git rev-list:*)
 user-invocable: true
 ---
 
@@ -20,7 +20,7 @@ $ARGUMENTS
 1. Split `$ARGUMENTS` into tokens
 2. Extract flags if present:
    - `-y` — enables **auto-accept** mode (skip all confirmations)
-   - `-A` — enables **all-changes** mode (include all unstaged and untracked files in the analysis, group them into logical commits)
+   - `-A` — enables **all-changes** mode (include ALL changes in the repository, not just from the current session)
 3. Remaining tokens are **actions**: `commit`, `push`, `pr`
 4. If no actions are provided, show the **Usage Help** section below and stop
 
@@ -53,13 +53,12 @@ Actions (combinable):
 
 Flags:
   -y       Auto-accept (skip confirmations)
-  -A       All-changes: include all unstaged and untracked files,
-           group them into logical commits automatically
+  -A       All-changes: include ALL repo changes (not just current session)
 
 Examples:
-  /git commit          Analyze changes and commit with confirmation
-  /git commit -y       Analyze changes and commit without confirmation
-  /git commit -A       Analyze ALL unstaged/untracked changes, group into logical commits
+  /git commit          Commit current session's changes
+  /git commit -y       Same, skip confirmations
+  /git commit -A       Commit ALL changes in the repo, group into logical commits
   /git commit -A -y    Same as above, skip confirmations
   /git commit push     Commit then push
   /git pr              Create a pull request
@@ -94,21 +93,29 @@ All commits follow this format:
 
 ### Step 1: Analyze Changes
 
-Use the Task tool with `subagent_type: diff-analyzer` to analyze the repository:
+**Default mode** — commit changes from the current Claude Code session:
 
-- **Default mode**: Analyze changes from the current session, or follow user-provided instructions if given, and create commit(s) accordingly.
-- **All-changes mode (`-A`)**: Analyze ALL changes including unstaged modifications and untracked files. Group them into multiple logical commits based on related functionality, scope, or purpose.
+- `git status` — see all changed and untracked files
+- `git diff` — see unstaged modifications
+- `git diff --staged` — see staged modifications
+- Identify which files were changed during the current session (based on conversation context) and only commit those
+- Read untracked files with the Read tool since they won't appear in `git diff`
 
-```
-Prompt: Analyze the current git changes. Group into logical commits if needed.
-(If -A: also include all untracked files in the analysis.)
-```
+**All-changes mode (`-A`)** — commit ALL changes in the repository:
 
-The diff-analyzer agent will return structured analysis with type, scope, summary, and files.
+- `git status` — see all changed and untracked files
+- `git diff` — see unstaged modifications
+- `git diff --staged` — see staged modifications
+- Every file shown in `git status` (modified, staged, AND untracked) MUST be included in exactly one commit
+- Group them into multiple logical commits based on related functionality, scope, or purpose
+- After grouping, verify that no files were left out
+- Read untracked files with the Read tool since they won't appear in `git diff`
+
+From the output, determine the commit type, scope, summary, and which files belong to each commit.
 
 ### Step 2: Propose Commit(s)
 
-Display the proposed files to stage and commit message(s) to the user. When `-A` is used, there will typically be multiple commits — each grouping related changes together.
+Display the proposed files to stage and commit message(s) to the user. Group related changes into logical commits when appropriate.
 
 ### Step 3: Confirm
 
@@ -160,13 +167,13 @@ Show result with `git log --oneline -1` and confirm push succeeded.
 
 ### Step 1: Analyze Branch Changes
 
-Use the Task tool with `subagent_type: diff-analyzer`:
+Run the following git commands directly to understand the branch:
 
-```
-Prompt: Analyze this branch for a pull request.
-```
+- `git log main..HEAD --oneline` — see all commits on this branch
+- `git diff main...HEAD` — see the full diff against the base branch
+- `git branch -vv` — see current branch and tracking info
 
-The diff-analyzer agent will return branch analysis with summary, changes, and testing suggestions.
+From the output, determine the PR title, summary of changes, and testing suggestions.
 
 ### Step 2: Propose PR
 
