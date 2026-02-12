@@ -18,8 +18,10 @@ if [[ -z "$branch_name" ]]; then
     exit 1
 fi
 
-# Create worktree as sibling directory
-worktree_path="$(dirname "$repo_root")/${repo_name}-${branch_name}"
+# Create worktree in ~/.worktrees
+worktree_dir="$HOME/.worktrees/${repo_name}"
+mkdir -p "$worktree_dir"
+worktree_path="${worktree_dir}/${branch_name}"
 
 # Create the worktree with new branch
 git worktree add "$worktree_path" -b "$branch_name"
