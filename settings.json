@@ -68,7 +68,8 @@
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true
+    "code-simplifier@claude-plugins-official": true,
+    "context7@claude-plugins-official": true
   },
   "spinnerVerbs": {
     "mode": "replace",
