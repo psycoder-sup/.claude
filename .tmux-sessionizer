@@ -1,0 +1,7 @@
+# tmux-sessionizer hydrate script
+# Sourced when a new tmux session is created via tmux-sessionizer
+# Creates two panes: claude (left, main) and lazygit (right, 40 cols)
+
+tmux split-window -h -l 40 -c "$(pwd)" "lazygit"
+tmux select-pane -L
+claude
