@@ -3,7 +3,7 @@
 # Download Claude Code Documentation
 # Downloads all markdown files from https://code.claude.com/docs/en/
 
-OUTPUT_DIR="_claude-docs"
+OUTPUT_DIR="docs"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"

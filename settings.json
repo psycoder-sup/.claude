@@ -63,7 +63,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
+    "command": "bash ~/.claude/statusline/statusline-command.sh"
   },
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": false,

@@ -1,5 +1,5 @@
 #!/bin/bash
-config_file="$HOME/.claude/statusline-config.txt"
+config_file="$HOME/.claude/statusline/statusline-config.txt"
 if [ -f "$config_file" ]; then
   source "$config_file"
   show_dir=$SHOW_DIRECTORY
@@ -89,7 +89,7 @@ fi
 
 usage_text=""
 if [ "$show_usage" = "1" ]; then
-  swift_result=$(swift "$HOME/.claude/fetch-claude-usage.swift" 2>/dev/null)
+  swift_result=$(swift "$HOME/.claude/statusline/fetch-claude-usage.swift" 2>/dev/null)
 
   if [ $? -eq 0 ] && [ -n "$swift_result" ]; then
     utilization=$(echo "$swift_result" | cut -d'|' -f1)
