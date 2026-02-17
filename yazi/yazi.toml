@@ -1,9 +1,12 @@
 [mgr]
-ratio = [0, 1, 0]
+ratio = [0, 1, 2]
 show_hidden = true
 sort_by = "natural"
 sort_dir_first = true
-linemode = "size"
+linemode = "none"
+
+[preview]
+wrap = "yes"
 
 [[plugin.prepend_fetchers]]
 id  = "git"

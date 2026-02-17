@@ -24,3 +24,9 @@ perm_exec  = { fg = "#89dceb" }
 progress_label  = { fg = "#cdd6f4", bold = true }
 progress_normal = { fg = "#a6e3a1", bg = "#313244" }
 progress_error  = { fg = "#1e1e2e", bg = "#f38ba8" }
+
+[tabs]
+active   = { fg = "#89b4fa", bg = "#1e1e2e", bold = true }
+inactive = { fg = "#6c7086", bg = "#1e1e2e" }
+sep_inner = { open = "", close = "" }
+sep_outer = { open = "", close = "" }
