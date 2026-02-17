@@ -4,10 +4,11 @@
 set -e
 
 usage() {
-  echo "Usage: gw <branch> [-d]"
-  echo "  gw feature-foo      Create worktree + tmux window"
-  echo "  gw feature-foo -d   Remove worktree + tmux window"
-  echo "  gw -l               List worktrees"
+  echo "Usage: gw <branch> [-d] [prompt]"
+  echo "  gw feature-foo              Create worktree + tmux window"
+  echo "  gw feature-foo \"prompt\"      Create worktree + tmux window + run claude"
+  echo "  gw feature-foo -d           Remove worktree + tmux window"
+  echo "  gw -l                       List worktrees"
 }
 
 if [ -z "$1" ]; then
@@ -42,7 +43,12 @@ git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_pa
 
 # Open tmux window or just print path
 if [ -n "$TMUX" ]; then
-  tmux new-window -c "$wt_path" -n "$repo_name/$branch"
+  if [ -n "$2" ]; then
+    tmux new-window -c "$wt_path" -n "$repo_name/$branch"
+    tmux send-keys -t "$repo_name/$branch" "claude '$2'" Enter
+  else
+    tmux new-window -c "$wt_path" -n "$repo_name/$branch"
+  fi
 else
   echo "Worktree created at: $wt_path"
   echo "Not in tmux — cd into it manually:"
