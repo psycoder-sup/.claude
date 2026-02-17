@@ -332,12 +332,12 @@ fi
 selected_name=$(basename "$selected" | tr '.:/ ' '_' | sed 's/^_*//')
 
 if ! is_tmux_running; then
-    tmux new-session -ds "$selected_name" -c "$selected"
+    tmux new-session -ds "$selected_name" -c "$selected" -n main
     hydrate "$selected_name" "$selected"
 fi
 
 if ! has_session "$selected_name"; then
-    tmux new-session -ds "$selected_name" -c "$selected"
+    tmux new-session -ds "$selected_name" -c "$selected" -n main
     hydrate "$selected_name" "$selected"
 fi
 
