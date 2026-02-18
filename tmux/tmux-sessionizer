@@ -133,6 +133,8 @@ sanity_check() {
 }
 
 switch_to() {
+    # Update terminal (Ghostty) tab title to the session name
+    printf '\033]0;%s\007' "$1"
     if [[ -z $TMUX ]]; then
         log "attaching to session $1"
         tmux attach-session -t "$1"
