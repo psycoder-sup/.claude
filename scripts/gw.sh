@@ -41,14 +41,20 @@ fi
 # Create worktree (try new branch first, fall back to existing)
 git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_path" "$branch"
 
-# Open tmux window or just print path
+# Open tmux window with dev layout or just print path
 if [ -n "$TMUX" ]; then
+  pane0=$(tmux new-window -c "$wt_path" -n "$repo_name/$branch" -P -F '#{pane_id}')
+
+  # 4-pane layout: yazi | claude | lazygit, terminal below
+  tmux split-window -t "$pane0" -h -c "$wt_path" -l 40 'lazygit'
+  tmux split-window -t "$pane0" -v -c "$wt_path" -l 16
   if [ -n "$2" ]; then
-    tmux new-window -c "$wt_path" -n "$repo_name/$branch"
-    tmux send-keys -t "$repo_name/$branch" "claude '$2'" Enter
+    claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' "claude '$2'")
   else
-    tmux new-window -c "$wt_path" -n "$repo_name/$branch"
+    claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' 'claude')
   fi
+  tmux send-keys -t "$pane0" 'yazi' Enter
+  tmux select-pane -t "$claude_pane"
 else
   echo "Worktree created at: $wt_path"
   echo "Not in tmux — cd into it manually:"

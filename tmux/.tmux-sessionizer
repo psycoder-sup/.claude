@@ -1,7 +1,27 @@
 # tmux-sessionizer hydrate script
 # Sourced when a new tmux session is created via tmux-sessionizer
-# Creates two panes: claude (left, main) and lazygit (right, 40 cols)
+#
+# Layout:
+# +--------+--------+---------+
+# | yazi   | claude | lazygit |
+# +--------+--------+         |
+# | terminal        |         |
+# +-----------------+---------+
 
-tmux split-window -h -l 40 -c "$(pwd)" "lazygit"
-tmux select-pane -L
-claude
+pane0=$(tmux display-message -p '#{pane_id}')
+dir="$(pwd)"
+
+# 1. Split right for lazygit (fixed 40 columns)
+tmux split-window -t "$pane0" -h -c "$dir" -l 40 'lazygit'
+
+# 2. Split left pane bottom for terminal (fixed 16 rows)
+tmux split-window -t "$pane0" -v -c "$dir" -l 16
+
+# 3. Split top-left for claude (1:1 ratio with yazi)
+claude_pane=$(tmux split-window -t "$pane0" -h -c "$dir" -p 50 -P -F '#{pane_id}' 'claude')
+
+# 4. Run yazi in top-left pane
+tmux send-keys -t "$pane0" 'yazi' Enter
+
+# 5. Focus claude pane
+tmux select-pane -t "$claude_pane"
