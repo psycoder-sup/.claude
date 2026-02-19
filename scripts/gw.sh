@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # gw - Create git worktree in ~/.worktrees and open tmux window
+#
+# Optional gw.json in the repo root can define lifecycle hooks:
+#   { "start": ["npm install", ...], "archive": ["rm -rf node_modules", ...] }
+# Hook commands receive GW_SOURCE (main repo root) and GW_TARGET (worktree path) as env vars.
 
 set -e
 
@@ -22,10 +26,11 @@ if [ "$1" = "-l" ]; then
 fi
 
 branch="$1"
-repo_name=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)") || {
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
   echo "Not in a git repository"
   exit 1
 }
+repo_name=$(basename "$repo_root")
 
 wt_path="$HOME/.worktrees/$repo_name/$branch"
 
@@ -41,6 +46,17 @@ fi
 # Create worktree (try new branch first, fall back to existing)
 git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_path" "$branch"
 
+# Run start hooks from gw.json if present
+gw_config="$repo_root/gw.json"
+if [ -f "$gw_config" ]; then
+  export GW_SOURCE="$repo_root"
+  export GW_TARGET="$wt_path"
+  while IFS= read -r cmd; do
+    echo "[gw] Running: $cmd"
+    (cd "$wt_path" && sh -c "$cmd")
+  done < <(python3 -c "import json,sys;[print(c)for c in json.load(open(sys.argv[1])).get('start',[])]" "$gw_config")
+fi
+
 # Open tmux window with dev layout or just print path
 if [ -n "$TMUX" ]; then
   pane0=$(tmux new-window -c "$wt_path" -n "$repo_name/$branch" -P -F '#{pane_id}')
@@ -49,7 +65,8 @@ if [ -n "$TMUX" ]; then
   tmux split-window -t "$pane0" -h -c "$wt_path" -l 40 'lazygit'
   tmux split-window -t "$pane0" -v -c "$wt_path" -l 16
   if [ -n "$2" ]; then
-    claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' "claude '$2'")
+    export GW_PROMPT="$2"
+    claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' 'claude "$GW_PROMPT"')
   else
     claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' 'claude')
   fi
