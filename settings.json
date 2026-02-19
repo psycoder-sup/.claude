@@ -19,6 +19,16 @@
     "defaultMode": "default"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\"SESSION_ID: \" + .session_id'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
