@@ -29,6 +29,16 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.session_id' | xargs -I{} baragi session close --session-id='{}'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -77,7 +87,7 @@
     "command": "bash ~/.claude/statusline/statusline-command.sh"
   },
   "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "context7@claude-plugins-official": true
