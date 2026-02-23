@@ -89,7 +89,7 @@
   },
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": true,
     "context7@claude-plugins-official": true
   },
