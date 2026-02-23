@@ -221,3 +221,4 @@ When multiple actions are specified, execute them **sequentially** in this order
 2. **Check for uncommitted changes** before checkout/rebase
 3. **Suggest backup branches** before risky operations
 4. **Show state before and after** operations
+5. **Always use plain git commands** — never use `git -C <path>`. Use `git add`, `git commit`, `git status`, etc. directly. The working directory is already the project root.
