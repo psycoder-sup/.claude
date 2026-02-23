@@ -1,7 +1,8 @@
 #!/bin/sh
+pagesize=$(sysctl -n hw.pagesize)
 total=$(sysctl -n hw.memsize)
-active=$(vm_stat | grep "Pages active" | awk -F: '{print int($2)}')
-wired=$(vm_stat | grep "Pages wired" | awk -F: '{print int($2)}')
-compressed=$(vm_stat | grep "Pages compressed" | awk -F: '{print int($2)}')
-used=$(( (active + wired + compressed) * 4096 ))
-echo "$used $total" | awk '{printf "%.0f%%", $1/$2*100}'
+free=$(vm_stat | grep "Pages free" | awk -F: '{print int($2)}')
+inactive=$(vm_stat | grep "Pages inactive" | awk -F: '{print int($2)}')
+purgeable=$(vm_stat | grep "Pages purgeable" | awk -F: '{print int($2)}')
+speculative=$(vm_stat | grep "Pages speculative" | awk -F: '{print int($2)}')
+echo "$free $inactive $purgeable $speculative $pagesize $total" | awk '{avail=($1+$2+$3+$4)*$5; printf "%.0f%%", (1-avail/$6)*100}'
