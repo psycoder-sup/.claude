@@ -25,4 +25,5 @@ tasks
 teams
 backups
 .credentials.json
+mcp-needs-auth-cache.json
 
