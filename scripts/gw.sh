@@ -8,12 +8,13 @@
 set -e
 
 usage() {
-  echo "Usage: gw <branch> [-d|archive] [prompt]"
-  echo "  gw feature-foo              Create worktree + tmux window"
-  echo "  gw feature-foo \"prompt\"      Create worktree + tmux window + run claude"
-  echo "  gw feature-foo archive      Run archive hooks + remove worktree + tmux window"
-  echo "  gw feature-foo -d           Remove worktree + tmux window (alias for archive)"
-  echo "  gw -l                       List worktrees"
+  echo "Usage: gw <command> [options]"
+  echo ""
+  echo "Commands:"
+  echo "  create <branch> [prompt]    Create worktree + tmux window"
+  echo "  list                        List worktrees"
+  echo "  archive <branch>            Run archive hooks + remove worktree + tmux window"
+  echo "  remove <branch>             Force remove worktree + tmux window (ignores uncommitted changes)"
 }
 
 # Run lifecycle hooks from gw.json
@@ -30,29 +31,65 @@ run_hooks() {
   done < <(python3 -c "import json,sys;[print(c)for c in json.load(open(sys.argv[1])).get(sys.argv[2],[])]" "$config" "$hook")
 }
 
-if [ -z "$1" ]; then
-  usage
-  exit 1
-fi
-
-if [ "$1" = "-l" ]; then
-  git worktree list
-  exit 0
-fi
-
-branch="$1"
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
-  echo "Not in a git repository"
-  exit 1
+resolve_repo() {
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Not in a git repository"
+    exit 1
+  }
+  repo_name=$(basename "$repo_root")
 }
-repo_name=$(basename "$repo_root")
 
-safe_branch="${branch//\//-}"
-wt_path="$HOME/.worktrees/$repo_name/$safe_branch"
-win_name="$repo_name/$safe_branch"
+resolve_worktree() {
+  local branch="$1"
+  safe_branch="${branch//\//-}"
+  wt_path="$HOME/.worktrees/$repo_name/$safe_branch"
+  win_name="$repo_name/$safe_branch"
+}
 
-# Archive/remove mode
-if [ "$2" = "archive" ] || [ "$2" = "-d" ]; then
+cmd_create() {
+  local branch="$1" prompt="$2"
+  [ -z "$branch" ] && { usage; exit 1; }
+
+  resolve_repo
+  resolve_worktree "$branch"
+
+  # Create worktree (try new branch first, fall back to existing)
+  git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_path" "$branch"
+
+  # Run start hooks from gw.json if present
+  run_hooks "$repo_root/gw.json" "start"
+
+  # Open tmux window with dev layout or just print path
+  if [ -n "$TMUX" ]; then
+    pane0=$(tmux new-window -c "$wt_path" -n "$win_name" -P -F '#{pane_id}')
+
+    # 4-pane layout: yazi | claude | lazygit, terminal below
+    tmux split-window -t "$pane0" -h -c "$wt_path" -l 40 'lazygit'
+    tmux split-window -t "$pane0" -v -c "$wt_path" -l 16
+    claude_cmd="claude"
+    [ -n "$prompt" ] && claude_cmd="claude $(printf '%q' "$prompt")"
+    claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' "$claude_cmd")
+    tmux send-keys -t "$pane0" 'yazi' Enter
+    tmux select-pane -t "$claude_pane"
+  else
+    echo "Worktree created at: $wt_path"
+    echo "Not in tmux — cd into it manually:"
+    echo "  cd $wt_path"
+  fi
+}
+
+cmd_list() {
+  resolve_repo
+  git worktree list
+}
+
+cmd_archive() {
+  local branch="$1"
+  [ -z "$branch" ] && { usage; exit 1; }
+
+  resolve_repo
+  resolve_worktree "$branch"
+
   run_hooks "$repo_root/gw.json" "archive"
   if ! git worktree remove "$wt_path"; then
     echo "Failed to remove worktree (there may be uncommitted changes)"
@@ -62,29 +99,30 @@ if [ "$2" = "archive" ] || [ "$2" = "-d" ]; then
   if [ -n "$TMUX" ]; then
     tmux kill-window -t "$win_name" 2>/dev/null || true
   fi
-  exit 0
-fi
+}
 
-# Create worktree (try new branch first, fall back to existing)
-git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_path" "$branch"
+cmd_remove() {
+  local branch="$1"
+  [ -z "$branch" ] && { usage; exit 1; }
 
-# Run start hooks from gw.json if present
-run_hooks "$repo_root/gw.json" "start"
+  resolve_repo
+  resolve_worktree "$branch"
 
-# Open tmux window with dev layout or just print path
-if [ -n "$TMUX" ]; then
-  pane0=$(tmux new-window -c "$wt_path" -n "$win_name" -P -F '#{pane_id}')
+  run_hooks "$repo_root/gw.json" "archive"
+  if ! git worktree remove --force "$wt_path"; then
+    echo "Failed to force remove worktree"
+    exit 1
+  fi
+  echo "Force removed worktree: $wt_path"
+  if [ -n "$TMUX" ]; then
+    tmux kill-window -t "$win_name" 2>/dev/null || true
+  fi
+}
 
-  # 4-pane layout: yazi | claude | lazygit, terminal below
-  tmux split-window -t "$pane0" -h -c "$wt_path" -l 40 'lazygit'
-  tmux split-window -t "$pane0" -v -c "$wt_path" -l 16
-  claude_cmd="claude"
-  [ -n "$2" ] && claude_cmd="claude $(printf '%q' "$2")"
-  claude_pane=$(tmux split-window -t "$pane0" -h -c "$wt_path" -p 50 -P -F '#{pane_id}' "$claude_cmd")
-  tmux send-keys -t "$pane0" 'yazi' Enter
-  tmux select-pane -t "$claude_pane"
-else
-  echo "Worktree created at: $wt_path"
-  echo "Not in tmux — cd into it manually:"
-  echo "  cd $wt_path"
-fi
+case "${1:-}" in
+  create)  shift; cmd_create "$@" ;;
+  list)    cmd_list ;;
+  archive) shift; cmd_archive "$1" ;;
+  remove)  shift; cmd_remove "$1" ;;
+  *)       usage; exit 1 ;;
+esac
