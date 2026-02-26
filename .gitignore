@@ -24,3 +24,5 @@ image-cache
 tasks
 teams
 backups
+.credentials.json
+
