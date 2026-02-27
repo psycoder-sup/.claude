@@ -25,13 +25,19 @@ Always check for existing tasks and active sessions when resuming work.
 | Action | Command |
 |--------|---------|
 | Next task to work on | `baragi next --json` |
+| Next task in an epic | `baragi next --epic=EPIC-NNN --json` |
 | All unblocked tasks | `baragi next --all --json` |
 | List all tasks | `baragi task list --json` |
+| List tasks in an epic | `baragi task list --epic=EPIC-NNN --json` |
 | Show task detail | `baragi task show TASK-NNN --json` |
 | Add a new task | `baragi task add "title" --priority=medium --description="..."` |
 | Update task status | `baragi task update TASK-NNN --status=review` |
 | View dependencies | `baragi task deps TASK-NNN --tree` |
 | Check blocked tasks | `baragi task list --json --blocked` |
+| List sessions for a task | `baragi session list --task=TASK-NNN --json` |
+| Show session detail | `baragi session show --session-id=<id> --json` |
+| List active sessions | `baragi session active --json` |
+| Close orphaned session | `baragi session close --session-id=<id>` |
 
 ## Task Scoping
 
