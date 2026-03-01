@@ -1,6 +1,6 @@
-## Baragi (Task Management)
+## Baragi (Work Management)
 
-Baragi is a CLI tool for task and project management. When the user mentions a baragi task, asks to check tasks, or starts work on a task, refer to the reference file for workflow and commands.
+Baragi is a CLI tool for work and project management. When the user mentions a baragi work item, asks to check works, or starts work on a task, refer to the reference file for workflow and commands.
 
 See `~/.claude/references/baragi.md` for workflow and commands.
 
