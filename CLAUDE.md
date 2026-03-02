@@ -1,7 +1,7 @@
 ## Baragi (Work Management)
 
 Baragi is a CLI tool for work management. Essential commands:
-- `baragi next --json` — check next work
+- `baragi next` — check next work
 - `baragi session start --work=WORK-NNN --agent=claude-code --session-id="<session-id>"` — start session (MUST run before writing code)
 - `baragi work update WORK-NNN --status=done --summary="..."` — mark done (only when user asks)
 

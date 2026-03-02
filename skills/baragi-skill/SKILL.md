@@ -11,7 +11,7 @@ Use `baragi` CLI for all work and project management.
 
 ## Workflow
 
-1. **Check next baragi work:** `baragi next --json` (use `--all` for all candidates)
+1. **Check next baragi work:** `baragi next` (use `--all` for all candidates)
 2. **Start a baragi session** (marks work in-progress, returns full context):
    ```bash
    baragi session start --work=WORK-NNN --agent=claude-code --session-id="<session-id>"
@@ -31,19 +31,19 @@ Always check for existing works and active sessions when resuming work.
 
 | Action | Command |
 |--------|---------|
-| Next work to work on | `baragi next --json` |
-| Next work in an epic | `baragi next --epic=EPIC-NNN --json` |
-| All unblocked works | `baragi next --all --json` |
-| List all works | `baragi work list --json` |
-| List works in an epic | `baragi work list --epic=EPIC-NNN --json` |
-| Show work detail | `baragi work show WORK-NNN --json` |
+| Next work to work on | `baragi next` |
+| Next work in an epic | `baragi next --epic=EPIC-NNN` |
+| All unblocked works | `baragi next --all` |
+| List all works | `baragi work list` |
+| List works in an epic | `baragi work list --epic=EPIC-NNN` |
+| Show work detail | `baragi work show WORK-NNN` |
 | Add a new work | `baragi work add "title" --priority=medium --description="..."` |
 | Update work status | `baragi work update WORK-NNN --status=done` |
 | View dependencies | `baragi work deps WORK-NNN --tree` |
-| Check blocked works | `baragi work list --json --blocked` |
-| List sessions for a work | `baragi session list --work=WORK-NNN --json` |
-| Show session detail | `baragi session show --session-id=<id> --json` |
-| List active sessions | `baragi session active --json` |
+| Check blocked works | `baragi work list --blocked` |
+| List sessions for a work | `baragi session list --work=WORK-NNN` |
+| Show session detail | `baragi session show --session-id=<id>` |
+| List active sessions | `baragi session active` |
 | Close orphaned session | `baragi session close --session-id=<id>` |
 
 ## Work Scoping
@@ -56,7 +56,7 @@ When creating baragi works, size them for **one session = one commit**:
 ## Rules
 
 - **BEFORE writing any code for a baragi work, you MUST run `baragi session start`.** This is a hard prerequisite — no exceptions, even if the user provides the work ID and plan upfront.
-- Always pass `--json` when reading data (structured output for parsing).
+- JSON output is the default — no need to pass `--json` (it no longer exists; use `--human` for human-readable output).
 - Never manually set work status to `in_progress` — use `session start` which handles this atomically.
 - Never mark a work as `done` unless the user explicitly asks you to.
 - When a work has dependencies, check `baragi work deps WORK-NNN` before starting.
