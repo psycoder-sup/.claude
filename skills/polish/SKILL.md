@@ -1,7 +1,7 @@
 ---
 name: polish
 description: This skill should be used when the user asks to "polish code", "clean up code", "simplify and review", "refine code", or wants to run code simplification followed by code review on recently modified code.
-allowed-tools: Task
+allowed-tools: Skill, Task
 user-invocable: true
 ---
 
@@ -19,7 +19,7 @@ $ARGUMENTS
 
 ### Step 1: Simplify
 
-Launch the `code-simplifier:code-simplifier` agent via the Task tool to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. Focus on recently modified code unless the user specified otherwise.
+Invoke the `/simplify` skill to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. Focus on recently modified code unless the user specified otherwise.
 
 If arguments are provided, pass them as scope context to the agent.
 

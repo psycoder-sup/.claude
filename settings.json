@@ -11,7 +11,9 @@
       "mcp__plugin_context7_context7__*",
       "Bash(git fetch:*)",
       "Skill(polish)",
-      "Skill(wrap)"
+      "Skill(wrap)",
+      "mcp__claude_ai_Figma__*",
+      "Skill(git)"
     ],
     "deny": [
       "Bash(git -C:*)"
@@ -92,7 +94,6 @@
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": false,
-    "code-simplifier@claude-plugins-official": true,
     "context7@claude-plugins-official": true
   },
   "spinnerVerbs": {
@@ -106,6 +107,5 @@
       "Blending",
       "Serving"
     ]
-  },
-  "effortLevel": "medium"
+  }
 }
