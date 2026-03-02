@@ -1,8 +1,11 @@
 ## Baragi (Work Management)
 
-Baragi is a CLI tool for work and project management. When the user mentions a baragi work item, asks to check works, or starts work on a task, refer to the reference file for workflow and commands.
+Baragi is a CLI tool for work management. Essential commands:
+- `baragi next --json` — check next work
+- `baragi session start --work=WORK-NNN --agent=claude-code --session-id="<session-id>"` — start session (MUST run before writing code)
+- `baragi work update WORK-NNN --status=done --summary="..."` — mark done (only when user asks)
 
-See `~/.claude/references/baragi.md` for workflow and commands.
+For full workflow, commands, and rules, use the `/baragi-skill` skill.
 
 ## Planning
 - Non-trivial tasks should always start with a plan before implementing. Use the built-in plan agent (`EnterPlanMode`) to design the approach and get user approval first.

@@ -1,3 +1,10 @@
+---
+name: baragi-skill
+description: Baragi work management — full workflow reference, CLI commands, and rules. Use when the user mentions a baragi work item, asks to check works, starts work on a task, or needs baragi CLI help.
+allowed-tools: Bash(baragi:*)
+user-invocable: true
+---
+
 # Baragi — Work Management
 
 Use `baragi` CLI for all work and project management.
