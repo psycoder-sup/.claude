@@ -1,7 +1,7 @@
 ---
 name: git
 description: This skill should be used when the user asks to "create a commit", "commit and push", "make a pull request", "understand branching strategies", "use conventional commits", or needs guidance on git best practices and safe git operations.
-allowed-tools: Read, Glob, Grep, AskUserQuestion, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*), Bash(git rev-list:*)
+allowed-tools: Read, Glob, Grep, Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git push:*), Bash(gh pr create:*), Bash(git rev-list:*)
 user-invocable: true
 ---
 
@@ -19,32 +19,28 @@ $ARGUMENTS
 
 1. Split `$ARGUMENTS` into tokens
 2. Extract flags if present:
-   - `-y` — enables **auto-accept** mode (skip all confirmations)
    - `-A` — enables **all-changes** mode (include ALL changes in the repository, not just from the current session)
-3. Remaining tokens are **actions**: `commit`, `push`, `pr`
+3. **Auto-accept is always ON** — never ask the user for confirmation, proceed immediately
+4. Remaining tokens are **actions**: `commit`, `push`, `pr`
 4. If no actions are provided, show the **Usage Help** section below and stop
 
 ### Examples
 
-| Input | Actions | Auto-accept | All-changes |
-|-------|---------|-------------|-------------|
-| `commit` | commit | no | no |
-| `commit -y` | commit | yes | no |
-| `commit -A` | commit | no | yes |
-| `commit -A -y` | commit | yes | yes |
-| `commit push` | commit, push | no | no |
-| `commit push -y` | commit, push | yes | no |
-| `pr` | pr | no | no |
-| `pr -y` | pr | yes | no |
-| `commit pr -y` | commit, pr | yes | no |
-| `commit push pr -A -y` | commit, push, pr | yes | yes |
+| Input | Actions | All-changes |
+|-------|---------|-------------|
+| `commit` | commit | no |
+| `commit -A` | commit | yes |
+| `commit push` | commit, push | no |
+| `pr` | pr | no |
+| `commit pr` | commit, pr | no |
+| `commit push pr -A` | commit, push, pr | yes |
 
 ## Usage Help
 
 If no actions are provided, display:
 
 ```
-Usage: /git <actions> [-y] [-A]
+Usage: /git <actions> [-A]
 
 Actions (combinable):
   commit   Analyze changes and create conventional commit(s)
@@ -52,17 +48,17 @@ Actions (combinable):
   pr       Create a pull request
 
 Flags:
-  -y       Auto-accept (skip confirmations)
   -A       All-changes: include ALL repo changes (not just current session)
+
+Note: All actions proceed without confirmation (auto-accept always on).
 
 Examples:
   /git commit          Commit current session's changes
-  /git commit -y       Same, skip confirmations
   /git commit -A       Commit ALL changes in the repo, group into logical commits
-  /git commit -A -y    Same as above, skip confirmations
   /git commit push     Commit then push
   /git pr              Create a pull request
-  /git commit pr -y    Commit then create PR, no confirmations
+  /git commit pr       Commit then create PR
+  /git commit push pr -A  Full workflow with all changes
 ```
 
 ## Conventional Commit Format
@@ -119,8 +115,7 @@ Display the proposed files to stage and commit message(s) to the user. Group rel
 
 ### Step 3: Confirm
 
-- If **auto-accept** is OFF: Use AskUserQuestion to confirm with the user before proceeding
-- If **auto-accept** is ON: Skip confirmation and proceed immediately
+Skip confirmation and proceed immediately.
 
 ### Step 4: Execute
 
@@ -150,8 +145,7 @@ Display the current branch and its remote tracking status using `git branch -vv`
 
 ### Step 2: Confirm
 
-- If **auto-accept** is OFF: Use AskUserQuestion to confirm
-- If **auto-accept** is ON: Skip confirmation
+Skip confirmation and proceed immediately.
 
 ### Step 3: Execute
 
@@ -181,8 +175,7 @@ Display the proposed PR title and description to the user.
 
 ### Step 3: Confirm
 
-- If **auto-accept** is OFF: Use AskUserQuestion to confirm
-- If **auto-accept** is ON: Skip confirmation
+Skip confirmation and proceed immediately.
 
 ### Step 4: Execute
 
