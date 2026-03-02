@@ -119,16 +119,17 @@ Skip confirmation and proceed immediately.
 
 ### Step 4: Execute
 
-For each proposed commit, stage only the relevant files and create the commit using HEREDOC format:
+For each proposed commit, stage only the relevant files and create the commit:
 
 ```bash
 git add <file1> <file2> ...
-git commit -m "$(cat <<'EOF'
-<emoji> <type>(<scope>): <description>
+git commit -m "<emoji> <type>(<scope>): <description>"
+```
 
-[optional body]
-EOF
-)"
+For commits with a body, use multiple `-m` flags:
+
+```bash
+git commit -m "<emoji> <type>(<scope>): <description>" -m "<body>"
 ```
 
 When `-A` produces multiple logical commits, repeat this stage-and-commit cycle for each group sequentially.
@@ -181,17 +182,14 @@ Skip confirmation and proceed immediately.
 
 Push the branch if not already pushed, then create the PR:
 ```bash
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Summary
+gh pr create --title "<title>" --body "## Summary
 <brief summary>
 
 ## Changes
 <bullet points of changes>
 
 ## Test Plan
-<how to test>
-EOF
-)"
+<how to test>"
 ```
 
 ### Step 5: Show PR URL
