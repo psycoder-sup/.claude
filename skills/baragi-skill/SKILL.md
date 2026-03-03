@@ -29,22 +29,53 @@ Always check for existing works and active sessions when resuming work.
 
 ## Quick Reference
 
+### Epic Commands
+
+| Action | Command |
+|--------|---------|
+| Create epic | `baragi epic add "name" --description="..."` |
+| List epics | `baragi epic list` |
+| Show epic | `baragi epic show EPIC-NNN` |
+| Update epic | `baragi epic update EPIC-NNN --name="..." --description="..." --status=active\|completed\|archived` |
+| Delete epic | `baragi epic delete EPIC-NNN` (use `--force` to unlink works) |
+
+### Work Commands
+
+| Action | Command |
+|--------|---------|
+| Add work | `baragi work add "title" --epic=EPIC-NNN --priority=medium --description="..." --acceptance-criteria="c1,c2" --related-files="f1,f2" --labels="l1,l2" --depends-on=WORK-NNN --due-date=YYYY-MM-DD` |
+| List all works | `baragi work list` |
+| List works in epic | `baragi work list --epic=EPIC-NNN` |
+| Show work detail | `baragi work show WORK-NNN` |
+| Update work | `baragi work update WORK-NNN --title="..." --description="..." --priority=... --status=done --summary="..."` |
+| Delete work | `baragi work delete WORK-NNN` |
+
+### Dependency Commands
+
+| Action | Command |
+|--------|---------|
+| Add dependency | `baragi work depend WORK-NNN --on=WORK-NNN` |
+| Remove dependency | `baragi work undepend WORK-NNN --on=WORK-NNN` |
+| Show deps for work | `baragi work deps WORK-NNN` |
+| Show dependents | `baragi work deps WORK-NNN --dependents` |
+| Show full dep tree | `baragi work deps --tree` |
+| Check blocked works | `baragi work list --blocked` |
+
+### Discovery & Session Commands
+
 | Action | Command |
 |--------|---------|
 | Next work to work on | `baragi next` |
 | Next work in an epic | `baragi next --epic=EPIC-NNN` |
 | All unblocked works | `baragi next --all` |
-| List all works | `baragi work list` |
-| List works in an epic | `baragi work list --epic=EPIC-NNN` |
-| Show work detail | `baragi work show WORK-NNN` |
-| Add a new work | `baragi work add "title" --priority=medium --description="..."` |
-| Update work status | `baragi work update WORK-NNN --status=done` |
-| View dependencies | `baragi work deps WORK-NNN --tree` |
-| Check blocked works | `baragi work list --blocked` |
 | List sessions for a work | `baragi session list --work=WORK-NNN` |
 | Show session detail | `baragi session show --session-id=<id>` |
 | List active sessions | `baragi session active` |
 | Close orphaned session | `baragi session close --session-id=<id>` |
+
+## Epic Scoping
+
+An epic maps to **one git worktree**, enabling parallel processing of multiple epics across separate worktrees.
 
 ## Work Scoping
 
