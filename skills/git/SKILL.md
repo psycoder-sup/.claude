@@ -119,17 +119,28 @@ Skip confirmation and proceed immediately.
 
 ### Step 4: Execute
 
-For each proposed commit, stage only the relevant files and create the commit:
+For each proposed commit, stage only the relevant files and create the commit.
+
+**IMPORTANT: Never use `$()` command substitution in commit commands.** Use `git commit -F -` with a heredoc for all commits:
 
 ```bash
-git add <file1> <file2> ...
-git commit -m "<emoji> <type>(<scope>): <description>"
+git add <file1> <file2> ... && git commit -F - <<'EOF'
+<emoji> <type>(<scope>): <description>
+
+<optional body>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
 ```
 
-For commits with a body, use multiple `-m` flags:
+For simple commits without a body:
 
 ```bash
-git commit -m "<emoji> <type>(<scope>): <description>" -m "<body>"
+git add <file1> <file2> ... && git commit -F - <<'EOF'
+<emoji> <type>(<scope>): <description>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
 ```
 
 When `-A` produces multiple logical commits, repeat this stage-and-commit cycle for each group sequentially.
