@@ -15,7 +15,8 @@
       "mcp__claude_ai_Figma__*",
       "Skill(git)",
       "Skill(baragi-skill)",
-      "Bash(baragi:*)"
+      "Bash(baragi:*)",
+      "Bash(git status:*)"
     ],
     "deny": [
       "Bash(git -C:*)"

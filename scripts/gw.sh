@@ -53,8 +53,13 @@ cmd_create() {
   resolve_repo
   resolve_worktree "$branch"
 
-  # Create worktree (try new branch first, fall back to existing)
-  git worktree add "$wt_path" -b "$branch" 2>/dev/null || git worktree add "$wt_path" "$branch"
+  # Create worktree: use existing branch if found, otherwise create new
+  if git show-ref --verify --quiet "refs/remotes/origin/$branch" ||
+     git show-ref --verify --quiet "refs/heads/$branch"; then
+    git worktree add "$wt_path" "$branch"
+  else
+    git worktree add "$wt_path" -b "$branch"
+  fi
 
   # Run start hooks from gw.json if present
   run_hooks "$repo_root/gw.json" "start"
