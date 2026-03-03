@@ -7,7 +7,6 @@ description: >
   session finalization: runs the polish skill for code quality checks,
   commits all changes via the git skill, and marks the current baragi
   work as done with a summary.
-disable-model-invocation: true
 version: 0.1.0
 ---
 
