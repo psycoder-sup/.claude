@@ -16,7 +16,9 @@
       "Skill(git)",
       "Skill(baragi-skill)",
       "Bash(baragi:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)"
     ],
     "deny": [
       "Bash(git -C:*)"
