@@ -9,22 +9,15 @@
       "Bash(wc:*)",
       "Bash(sed:*)",
       "mcp__plugin_context7_context7__*",
-      "Bash(git fetch:*)",
       "Skill(polish)",
       "Skill(wrap)",
       "mcp__claude_ai_Figma__*",
-      "Skill(git)",
+      "Skill(git-skill)",
       "Skill(baragi-skill)",
       "Bash(baragi:*)",
-      "Bash(git status:*)",
       "Bash(find:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(gh pr create:*)",
       "Bash(curl:*)",
-      "Bash(git push:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git:*)"
     ],
     "deny": [
       "Bash(git -C:*)"
