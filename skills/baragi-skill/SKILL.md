@@ -1,6 +1,6 @@
 ---
 name: baragi-skill
-description: Baragi work management CLI reference. Use when the user mentions work items (WORK-NNN), epics (EPIC-NNN), needs baragi command syntax, or starts work on a task.
+description: Baragi work management CLI reference. Use when the user mentions work items (WORK-NNN), lists (LIST-NNN), needs baragi command syntax, or starts work on a task.
 allowed-tools: Bash(baragi:*)
 user-invocable: true
 ---
@@ -29,26 +29,30 @@ Always check for existing works and active sessions when resuming work.
 
 ## Quick Reference
 
-### Epic Commands
+### List Commands
 
 | Action | Command |
 |--------|---------|
-| Create epic | `baragi epic add "name" --description="..."` |
-| List epics | `baragi epic list` |
-| Show epic | `baragi epic show EPIC-NNN` |
-| Update epic | `baragi epic update EPIC-NNN --name="..." --description="..." --status=active\|completed\|archived` |
-| Delete epic | `baragi epic delete EPIC-NNN` (use `--force` to unlink works) |
+| Create list | `baragi list add "name" --description="..."` |
+| List all lists | `baragi list list` |
+| Show list | `baragi list show LIST-NNN` |
+| Update list | `baragi list update LIST-NNN --name="..." --description="..." --status=active\|archived` |
+| Delete list | `baragi list delete LIST-NNN` (use `--force` to unlink works) |
 
 ### Work Commands
 
 | Action | Command |
 |--------|---------|
-| Add work | `baragi work add "title" --epic=EPIC-NNN --priority=medium --description="..." --acceptance-criteria="c1,c2" --related-files="f1,f2" --labels="l1,l2" --depends-on=WORK-NNN --due-date=YYYY-MM-DD` |
+| Add work | `baragi work add "title" --list=LIST-NNN --priority=medium --description="..." --labels="l1,l2" --depends-on=WORK-NNN --due-date=YYYY-MM-DD --parent=WORK-NNN` |
+| Add child work | `baragi work add "title" --parent=WORK-NNN` (inherits project/list from parent) |
 | List all works | `baragi work list` |
-| List works in epic | `baragi work list --epic=EPIC-NNN` |
-| Show work detail | `baragi work show WORK-NNN` |
+| List works in list | `baragi work list --list=LIST-NNN` |
+| List top-level only | `baragi work list --top-level-only` (excludes children) |
+| List children of work | `baragi work list --parent=WORK-NNN` |
+| Show work detail | `baragi work show WORK-NNN` (shows `children` array for parents, `parent_id` for children) |
 | Update work | `baragi work update WORK-NNN --title="..." --description="..." --priority=... --status=done --summary="..."` |
-| Delete work | `baragi work delete WORK-NNN` |
+| Re-parent work | `baragi work update WORK-NNN --parent=WORK-NNN` (clear with `--parent=""`) |
+| Delete work | `baragi work delete WORK-NNN` (use `--force` if work has children; cascades) |
 
 ### Dependency Commands
 
@@ -66,16 +70,25 @@ Always check for existing works and active sessions when resuming work.
 | Action | Command |
 |--------|---------|
 | Next work to work on | `baragi next` |
-| Next work in an epic | `baragi next --epic=EPIC-NNN` |
+| Next work in a list | `baragi next --list=LIST-NNN` |
 | All unblocked works | `baragi next --all` |
 | List sessions for a work | `baragi session list --work=WORK-NNN` |
 | Show session detail | `baragi session show --session-id=<id>` |
 | List active sessions | `baragi session active` |
 | Close orphaned session | `baragi session close --session-id=<id>` |
 
-## Epic Scoping
+## List Scoping
 
-An epic maps to **one git worktree**, enabling parallel processing of multiple epics across separate worktrees.
+A list maps to **one git worktree**, enabling parallel processing of multiple lists across separate worktrees.
+
+## Parent/Child Works
+
+Works support **1-level nesting** (parent → children, no grandchildren). Use parent works to group related subtasks.
+- `--parent=WORK-NNN` on `work add` creates a child that inherits the parent's project and list.
+- A work with children cannot itself become a child. A child cannot have children.
+- Deleting a parent cascades to all children (requires `--force`).
+- `work show` on a parent includes a `children` array; on a child includes `parent_id`.
+- `work list` enriches parents with `child_count` and `children_done` counts.
 
 ## Work Scoping
 

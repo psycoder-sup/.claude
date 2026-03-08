@@ -1,4 +1,7 @@
 {
+  "env": {
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
+  },
   "permissions": {
     "allow": [
       "WebFetch",
@@ -17,7 +20,8 @@
       "Bash(baragi:*)",
       "Bash(find:*)",
       "Bash(curl:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "mcp__plugin_slack_slack__*"
     ],
     "deny": [
       "Bash(git -C:*)"
@@ -98,7 +102,8 @@
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": false,
-    "context7@claude-plugins-official": true
+    "context7@claude-plugins-official": true,
+    "slack@claude-plugins-official": true
   },
   "spinnerVerbs": {
     "mode": "replace",
