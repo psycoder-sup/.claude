@@ -21,7 +21,9 @@
       "Bash(find:*)",
       "Bash(curl:*)",
       "Bash(git:*)",
-      "mcp__plugin_slack_slack__*"
+      "mcp__plugin_slack_slack__*",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)"
     ],
     "deny": [
       "Bash(git -C:*)"

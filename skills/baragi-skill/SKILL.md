@@ -100,7 +100,7 @@ When creating baragi works, size them for **one session = one commit**:
 ## Rules
 
 - **BEFORE writing any code for a baragi work, you MUST run `baragi session start`.** This is a hard prerequisite — no exceptions, even if the user provides the work ID and plan upfront.
-- JSON output is the default — no need to pass `--json` (it no longer exists; use `--human` for human-readable output).
+- JSON output is the default — no need to pass `--json` (it no longer exists).
 - Never manually set work status to `in_progress` — use `session start` which handles this atomically.
 - Never mark a work as `done` unless the user explicitly asks you to.
 - When a work has dependencies, check `baragi work deps WORK-NNN` before starting.

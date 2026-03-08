@@ -1,7 +1,7 @@
 ---
 name: baragi-master
 description: "Use this agent when the user wants to create, update, or delete lists and work items, plan out features by decomposing them into work items, manage dependencies between work items, or get a status report on project progress.\n\nExamples:\n\n- User: \"Create a list for the auth refactor\"\n  Assistant: \"I'll use the baragi-master agent to create the list.\"\n  (Use the Agent tool to launch the baragi-master agent)\n\n- User: \"Break down this feature into work items\"\n  Assistant: \"I'll use the baragi-master agent to explore the codebase and decompose this into properly sized work items.\"\n  (Use the Agent tool to launch the baragi-master agent)\n\n- User: \"Set up dependencies between WORK-001 and WORK-002\"\n  Assistant: \"I'll use the baragi-master agent to manage the dependencies.\"\n  (Use the Agent tool to launch the baragi-master agent)\n\n- User: \"Give me a status report on the project\"\n  Assistant: \"I'll use the baragi-master agent to gather progress data and generate a report.\"\n  (Use the Agent tool to launch the baragi-master agent)\n\n- User: \"Delete WORK-005\"\n  Assistant: \"I'll use the baragi-master agent to delete that work item.\"\n  (Use the Agent tool to launch the baragi-master agent)"
-model: opus
+model: sonnet
 color: cyan
 memory: project
 skills: baragi-skill
@@ -65,7 +65,7 @@ When asked for a status report:
 - **Never run `baragi session start`** — that's the main agent's responsibility
 - **Never mark work as `done`** — only when the user explicitly asks, and that goes through the main agent
 - **Execute autonomously** — perform all other baragi operations without asking for confirmation
-- **JSON is default** — no `--json` flag needed (use `--human` for human-readable output)
+- **JSON is default** — no `--json` flag needed
 - **Handle errors gracefully** — if a command fails, try variations or report what happened
 - **Explore before planning** — always read relevant code before creating work items so you can set accurate labels and priorities
 
