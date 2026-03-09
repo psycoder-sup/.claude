@@ -92,10 +92,40 @@ Works support **1-level nesting** (parent → children, no grandchildren). Use p
 
 ## Work Scoping
 
-When creating baragi works, size them for **one session = one commit**:
-- **1-5 files**, **50-300 LOC** changed per work
-- If the title needs "and" more than once, split it
+### Parent Work (Epic-sized)
+- **One user-visible outcome**, completable in 1–3 working days of agent effort
+- Describable in one sentence without "and" joining unrelated things
+- Contains **2–6 child items** — fewer means no decomposition needed, more means too big
+- Title describes the **what/why**, not implementation detail
+
+### Child Work (Task-sized)
+- **One session = one commit**: 1–5 files, 50–300 LOC changed
+- Touches **one layer** of the architecture (model, repository, command, UI)
+- Independently implementable and testable
+- If the title needs "and", split it
 - Each repository, each command file, or each distinct concern = its own work
+
+### Anti-patterns
+- Parent with 1 child → standalone work item instead
+- Parent with 10+ children → split into 2–3 parents
+- Child spanning multiple layers → split by layer
+
+## Structuring Dependencies
+
+### Within a parent (sibling dependencies)
+- Add dependencies when there's a real build order (model → repo → command) — helps `baragi next` pick the right child
+- Skip when siblings are truly parallel (e.g., two independent commands)
+
+### Between parents (cross-parent dependencies)
+- **Prefer parent-on-parent** for coarse ordering ("auth feature before permissions feature")
+- **Use child-on-child cross-parent** only when one specific child blocks another specific child — avoids waiting for an entire parent to finish
+
+### When NOT to add dependencies
+- Soft preferences ("nice to do X first") — only add when starting out of order causes real failures (missing model, missing table, missing API)
+- Between a parent and its own children (parent-child relationship already implies this)
+
+### Rule of thumb
+If an agent starts the work without the dependency done and hits a compile error or missing table — it needs a dependency. If it just feels like a natural order — it doesn't.
 
 ## Rules
 
