@@ -40,6 +40,10 @@
           {
             "type": "command",
             "command": "jq -r '\"SESSION_ID: \" + .session_id'"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.session_id' | xargs -I{} baragi session start --agent=claude-code --session-id='{}'"
           }
         ]
       }

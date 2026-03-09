@@ -12,11 +12,12 @@ Use `baragi` CLI for all work and project management.
 ## Workflow
 
 1. **Check next baragi work:** `baragi next` (use `--all` for all candidates)
-2. **Start a baragi session** (marks work in-progress, returns full context):
+2. **Start a baragi session** (creates session, then attaches to work for full context):
    ```bash
-   baragi session start --work=WORK-NNN --agent=claude-code --session-id="<session-id>"
+   baragi session start --agent=claude-code --session-id="<session-id>"
+   baragi session attach --session-id="<session-id>" --work=WORK-NNN
    ```
-   Session ID comes from the session start hook at conversation startup.
+   Session ID comes from the session start hook at conversation startup. `session start` creates the session locally. `session attach` validates the work, marks it in-progress, and returns full context.
 3. **Track progress** using Claude Code's built-in TaskCreate/TaskUpdate tools for plan steps. For plan implementations, always add a final task to use skills.
 4. **Mark tasks done** as you go using TaskUpdate.
 5. **Do NOT end the baragi work on your own.** Wait for the user to explicitly tell you to mark the work as done. When instructed, update the work:
@@ -72,14 +73,23 @@ Always check for existing works and active sessions when resuming work.
 | Next work to work on | `baragi next` |
 | Next work in a list | `baragi next --list=LIST-NNN` |
 | All unblocked works | `baragi next --all` |
+| List all sessions | `baragi session list` |
 | List sessions for a work | `baragi session list --work=WORK-NNN` |
+| Attach session to work | `baragi session attach --session-id=<id> --work=WORK-NNN` |
 | Show session detail | `baragi session show --session-id=<id>` |
 | List active sessions | `baragi session active` |
 | Close orphaned session | `baragi session close --session-id=<id>` |
 
-## List Scoping
+## Hierarchy Scoping
 
-A list maps to **one git worktree**, enabling parallel processing of multiple lists across separate worktrees.
+| Level | Scope | Decision test |
+|-------|-------|---------------|
+| **List** | Thematic grouping / sprint / milestone. Groups related-but-independent features. Maps to **one git worktree** for parallel processing. | Multiple PRs under this umbrella? |
+| **Parent work** | One feature = one PR. One user-visible outcome, 1–3 days of agent effort. | PR title on a Kanban board? |
+| **Child work** | One implementation step. One session, one layer, one commit. 1–5 files, 50–300 LOC. | Checklist item inside a PR? |
+| **Standalone work** | Small enough to not need decomposition. | One session, no breakdown needed? |
+
+**Anti-patterns:** Parent with 1 child (use standalone), parent with 10+ children (split into 2–3 parents), child spanning multiple layers (split by layer), list with only 1 work (probably doesn't need its own list).
 
 ## Parent/Child Works
 
@@ -89,26 +99,6 @@ Works support **1-level nesting** (parent → children, no grandchildren). Use p
 - Deleting a parent cascades to all children (requires `--force`).
 - `work show` on a parent includes a `children` array; on a child includes `parent_id`.
 - `work list` enriches parents with `child_count` and `children_done` counts.
-
-## Work Scoping
-
-### Parent Work (Epic-sized)
-- **One user-visible outcome**, completable in 1–3 working days of agent effort
-- Describable in one sentence without "and" joining unrelated things
-- Contains **2–6 child items** — fewer means no decomposition needed, more means too big
-- Title describes the **what/why**, not implementation detail
-
-### Child Work (Task-sized)
-- **One session = one commit**: 1–5 files, 50–300 LOC changed
-- Touches **one layer** of the architecture (model, repository, command, UI)
-- Independently implementable and testable
-- If the title needs "and", split it
-- Each repository, each command file, or each distinct concern = its own work
-
-### Anti-patterns
-- Parent with 1 child → standalone work item instead
-- Parent with 10+ children → split into 2–3 parents
-- Child spanning multiple layers → split by layer
 
 ## Structuring Dependencies
 
@@ -129,7 +119,7 @@ If an agent starts the work without the dependency done and hits a compile error
 
 ## Rules
 
-- **BEFORE writing any code for a baragi work, you MUST run `baragi session start`.** This is a hard prerequisite — no exceptions, even if the user provides the work ID and plan upfront.
+- **BEFORE writing any code for a baragi work, you MUST run `baragi session start` followed by `baragi session attach`.** This is a hard prerequisite — no exceptions, even if the user provides the work ID and plan upfront.
 - JSON output is the default — no need to pass `--json` (it no longer exists).
 - Never manually set work status to `in_progress` — use `session start` which handles this atomically.
 - Never mark a work as `done` unless the user explicitly asks you to.

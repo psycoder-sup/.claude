@@ -28,4 +28,12 @@ Execute these steps sequentially. Stop and report on any failure.
 
 Retrieve the work ID from the `baragi session start` call made earlier in this conversation. If no session was started, ask the user which work to mark as done.
 
-Update the work status to done using the baragi MCP tool (`update_work`), setting status to "done" and providing a brief summary of what was delivered (not a list of files changed).
+### Parent work (has children)
+
+1. List child works using `baragi work list --parent=WORK-NNN` (or check earlier conversation context).
+2. **Validate** all child works have status `done`. If any are not done, report which are incomplete and stop — do not mark the parent done.
+3. If all children are done, mark the parent work as done with a summary.
+
+### Leaf work (no children)
+
+Update the work status to done using the baragi CLI, setting status to "done" and providing a brief summary of what was delivered (not a list of files changed).
