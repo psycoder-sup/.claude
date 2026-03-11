@@ -23,7 +23,8 @@
       "Bash(git:*)",
       "mcp__plugin_slack_slack__*",
       "Bash(gh pr view:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [
       "Bash(git -C:*)"
@@ -110,9 +111,6 @@
     "swift-lsp@claude-plugins-official": false,
     "context7@claude-plugins-official": true,
     "slack@claude-plugins-official": true
-  },
-  "env": {
-    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
   },
   "spinnerVerbs": {
     "mode": "replace",

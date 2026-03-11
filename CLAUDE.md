@@ -3,8 +3,17 @@
 Baragi is a CLI tool for work management. Essential commands:
 - `baragi next` — check next work
 - `baragi session attach --session-id="<session-id>" --work=WORK-NNN` — attach session to work (MUST run before writing code). `session start` is handled automatically by the SessionStart hook.
-- `baragi work update WORK-NNN --status=done --summary="..."` — mark done (only when user asks)
+- `baragi work update WORK-NNN --json='{"status":"done","summary":"..."}'` — mark done (only when user asks)
 - **Never use the `--human` option** with any baragi command.
+- **Prefer `--json` for add/update commands** — Use `--json='{"key":"value"}'` instead of individual flags for work add, work update, list add, list update, and project update. Examples:
+  - `baragi work add --json='{"title":"Fix bug","priority":"high","labels":["backend","api"]}'`
+  - `baragi work update WORK-NNN --json='{"status":"done","summary":"Completed implementation"}'`
+  - Array fields use JSON arrays (not CSV): `"labels":["a","b"]`, `"depends_on":["WORK-001"]`
+- **Use `--fields` to filter output** — Always specify only the fields you need to reduce token usage. Examples:
+  - `baragi work get WORK-NNN --fields=title,status,priority,children`
+  - `baragi work list --fields=title,status,is_blocked`
+  - `baragi next --fields=title,status,priority,is_blocked`
+  - `id` is always included automatically
 
 For full workflow, commands, and rules, use the `/baragi-skill` skill.
 
