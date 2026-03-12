@@ -2,6 +2,7 @@
 config_file="$HOME/.claude/statusline/statusline-config.txt"
 if [ -f "$config_file" ]; then
   source "$config_file"
+  show_session=$SHOW_SESSION_ID
   show_dir=$SHOW_DIRECTORY
   show_branch=$SHOW_BRANCH
   show_model=$SHOW_MODEL
@@ -10,6 +11,7 @@ if [ -f "$config_file" ]; then
   show_bar=$SHOW_PROGRESS_BAR
   show_reset=$SHOW_RESET_TIME
 else
+  show_session=1
   show_dir=1
   show_branch=1
   show_model=1
@@ -20,6 +22,7 @@ else
 fi
 
 input=$(cat)
+session_id=$(echo "$input" | grep -o '"session_id":"[^"]*"' | sed 's/"session_id":"//;s/"$//' | cut -c1-8)
 current_dir_path=$(echo "$input" | grep -o '"current_dir":"[^"]*"' | sed 's/"current_dir":"//;s/"$//')
 current_dir=$(basename "$current_dir_path")
 model_name=$(echo "$input" | grep -o '"display_name":"[^"]*"' | sed 's/"display_name":"//;s/"$//')
@@ -43,6 +46,11 @@ LEVEL_9=$'\033[38;5;160m'  # dark red
 LEVEL_10=$'\033[38;5;124m' # deep red
 
 # Build components (without separators)
+session_text=""
+if [ "$show_session" = "1" ] && [ -n "$session_id" ]; then
+  session_text="${GRAY}${session_id}${RESET}"
+fi
+
 dir_text=""
 if [ "$show_dir" = "1" ]; then
   dir_text="${BLUE}${current_dir}${RESET}"
@@ -177,7 +185,12 @@ fi
 output=""
 separator="${GRAY} │ ${RESET}"
 
-[ -n "$dir_text" ] && output="${dir_text}"
+[ -n "$session_text" ] && output="${session_text}"
+
+if [ -n "$dir_text" ]; then
+  [ -n "$output" ] && output="${output}${separator}"
+  output="${output}${dir_text}"
+fi
 
 if [ -n "$branch_text" ]; then
   [ -n "$output" ] && output="${output}${separator}"
