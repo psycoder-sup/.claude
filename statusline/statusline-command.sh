@@ -182,34 +182,36 @@ if [ "$show_usage" = "1" ]; then
   fi
 fi
 
-output=""
+line1=""
+line2=""
 separator="${GRAY} │ ${RESET}"
 
-[ -n "$session_text" ] && output="${session_text}"
+# Line 1: session | project root | branch
+[ -n "$session_text" ] && line1="${session_text}"
 
 if [ -n "$dir_text" ]; then
-  [ -n "$output" ] && output="${output}${separator}"
-  output="${output}${dir_text}"
+  [ -n "$line1" ] && line1="${line1}${separator}"
+  line1="${line1}${dir_text}"
 fi
 
 if [ -n "$branch_text" ]; then
-  [ -n "$output" ] && output="${output}${separator}"
-  output="${output}${branch_text}"
+  [ -n "$line1" ] && line1="${line1}${separator}"
+  line1="${line1}${branch_text}"
 fi
 
+# Line 2: model | usage | context
 if [ -n "$model_text" ]; then
-  [ -n "$output" ] && output="${output}${separator}"
-  output="${output}${model_text}"
-fi
-
-if [ -n "$context_text" ]; then
-  [ -n "$output" ] && output="${output}${separator}"
-  output="${output}${context_text}"
+  line2="${model_text}"
 fi
 
 if [ -n "$usage_text" ]; then
-  [ -n "$output" ] && output="${output}${separator}"
-  output="${output}${usage_text}"
+  [ -n "$line2" ] && line2="${line2}${separator}"
+  line2="${line2}${usage_text}"
 fi
 
-printf "%s\n" "$output"
+if [ -n "$context_text" ]; then
+  [ -n "$line2" ] && line2="${line2}${separator}"
+  line2="${line2}${context_text}"
+fi
+
+printf "%s\n%s\n" "$line1" "$line2"
