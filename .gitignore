@@ -21,6 +21,7 @@ local
 
 image-cache
 
+sessions
 tasks
 teams
 backups
