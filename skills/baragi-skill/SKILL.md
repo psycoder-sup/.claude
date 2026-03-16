@@ -47,6 +47,7 @@ Always check for existing works and active sessions when resuming work.
 | Add work | `baragi work add --json='{"title":"...","list":"LIST-NNN","priority":"medium","description":"...","labels":["l1","l2"],"depends_on":["WORK-NNN"],"due_date":"YYYY-MM-DD","parent":"WORK-NNN"}'` |
 | Add child work | `baragi work add --json='{"title":"...","parent":"WORK-NNN"}'` (inherits project/list from parent) |
 | List all works | `baragi work list --fields=title,status,priority,is_blocked` |
+| Filter by status | `baragi work list --status=todo` or `--status=todo,in_progress` (comma-separated) |
 | List works in list | `baragi work list --list=LIST-NNN --fields=title,status,priority` |
 | List top-level only | `baragi work list --top-level-only --fields=title,status,child_count,children_done` |
 | List children of work | `baragi work list --parent=WORK-NNN --fields=title,status` |
