@@ -74,6 +74,8 @@ Always check for existing works and active sessions when resuming work.
 | Next work to work on | `baragi next --fields=title,status,priority,is_blocked` |
 | Next work in a list | `baragi next --list=LIST-NNN --fields=title,status,priority` |
 | All unblocked works | `baragi next --all --fields=title,status,priority` |
+
+When `next` returns no work, the JSON response includes a `reason` field: `no_works` (nothing exists), `all_done` (all complete), or `all_blocked` (remaining are blocked).
 | List all sessions | `baragi session list` |
 | List sessions for a work | `baragi session list --work=WORK-NNN` |
 | Attach session to work | `baragi session attach --session-id=<id> --work=WORK-NNN` |
