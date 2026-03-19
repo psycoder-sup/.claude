@@ -8,6 +8,14 @@ linemode = "none"
 [preview]
 wrap = "yes"
 
+[[plugin.prepend_previewers]]
+url = "*.md"
+run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"'
+
+[[plugin.prepend_previewers]]
+mime = "text/*"
+run = 'piper -- bat --color=always --style=numbers,changes --decorations=always --wrap=character --terminal-width=$w "$1"'
+
 [[plugin.prepend_fetchers]]
 id  = "git"
 url = "*"
