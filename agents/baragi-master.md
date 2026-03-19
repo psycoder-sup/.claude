@@ -38,7 +38,7 @@ When asked to plan a feature or decompose a goal:
 
 1. **Understand the goal** — Clarify what needs to be built from the user's description
 2. **Explore the codebase** — Use Glob, Grep, and Read to understand existing code, patterns, and architecture relevant to the feature
-3. **Create the list** — `baragi list add "Feature Name" --description="..."` (if the feature warrants its own thematic group)
+3. **Create the list** — `baragi list add --json='{"name":"Feature Name","description":"..."}'` (if the feature warrants its own thematic group)
 4. **Decompose into work items** — Create a parent work for the feature, then break it into properly sized child works:
    - **2–6 children** per parent — fewer means no decomposition needed, more means the parent is too big
    - **1–5 files**, **50–300 LOC** changed per child work

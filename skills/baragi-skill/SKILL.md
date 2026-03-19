@@ -44,16 +44,16 @@ Always check for existing works and active sessions when resuming work.
 
 | Action | Command |
 |--------|---------|
-| Add work | `baragi work add --json='{"title":"...","list":"LIST-NNN","priority":"medium","description":"...","labels":["l1","l2"],"depends_on":["WORK-NNN"],"due_date":"YYYY-MM-DD","parent":"WORK-NNN"}'` |
-| Add child work | `baragi work add --json='{"title":"...","parent":"WORK-NNN"}'` (inherits project/list from parent) |
-| List all works | `baragi work list --fields=title,status,priority,is_blocked` |
-| Filter by status | `baragi work list --status=todo` or `--status=todo,in_progress` (comma-separated) |
-| List works in list | `baragi work list --list=LIST-NNN --fields=title,status,priority` |
-| List top-level only | `baragi work list --top-level-only --fields=title,status,child_count,children_done` |
-| List children of work | `baragi work list --parent=WORK-NNN --fields=title,status` |
-| Get work detail | `baragi work get WORK-NNN --fields=title,status,priority,description,children,dependencies` |
+| Add work | `baragi work add --json='{"title":"...","list_id":"LIST-NNN","priority":"medium","description":"...","labels":["l1","l2"],"depends_on":["WORK-NNN"],"due_date":"YYYY-MM-DD","parent_id":"WORK-NNN"}'` |
+| Add child work | `baragi work add --json='{"title":"...","parent_id":"WORK-NNN"}'` (inherits project/list from parent) |
+| List all works | `baragi work list --json='{"fields":["title","status","priority","is_blocked"]}'` |
+| Filter by status | `baragi work list --json='{"status":"todo"}'` or `--json='{"status":"todo,in_progress"}'` |
+| List works in list | `baragi work list --json='{"list_id":"LIST-NNN","fields":["title","status","priority"]}'` |
+| List top-level only | `baragi work list --json='{"top_level_only":true,"fields":["title","status","child_count","children_done"]}'` |
+| List children of work | `baragi work list --json='{"parent_id":"WORK-NNN","fields":["title","status"]}'` |
+| Get work detail | `baragi work get WORK-NNN --json='{"fields":["title","status","priority","description","children","dependencies"]}'` |
 | Update work | `baragi work update WORK-NNN --json='{"title":"...","description":"...","priority":"...","status":"done","summary":"..."}'` |
-| Re-parent work | `baragi work update WORK-NNN --json='{"parent":"WORK-NNN"}'` (clear with `--parent=""`) |
+| Re-parent work | `baragi work update WORK-NNN --json='{"parent_id":"WORK-NNN"}'` (clear with `--parent-id=""`) |
 | Delete work | `baragi work delete WORK-NNN` (use `--force` if work has children; cascades) |
 
 ### Dependency Commands
@@ -63,21 +63,21 @@ Always check for existing works and active sessions when resuming work.
 | Add dependency | `baragi work depend WORK-NNN --on=WORK-NNN` |
 | Remove dependency | `baragi work undepend WORK-NNN --on=WORK-NNN` |
 | Show deps for work | `baragi work deps WORK-NNN` |
-| Show dependents | `baragi work deps WORK-NNN --dependents` |
-| Show full dep tree | `baragi work deps --tree` |
-| Check blocked works | `baragi work list --blocked` |
+| Show dependents | `baragi work deps WORK-NNN --json='{"dependents":true}'` |
+| Show full dep tree | `baragi work deps --json='{"tree":true}'` |
+| Check blocked works | `baragi work list --json='{"blocked":true}'` |
 
 ### Discovery & Session Commands
 
 | Action | Command |
 |--------|---------|
-| Next work to work on | `baragi next --fields=title,status,priority,is_blocked` |
-| Next work in a list | `baragi next --list=LIST-NNN --fields=title,status,priority` |
-| All unblocked works | `baragi next --all --fields=title,status,priority` |
+| Next work to work on | `baragi next --json='{"fields":["title","status","priority","is_blocked"]}'` |
+| Next work in a list | `baragi next --json='{"list_id":"LIST-NNN","fields":["title","status","priority"]}'` |
+| All unblocked works | `baragi next --json='{"all":true,"fields":["title","status","priority"]}'` |
 
 When `next` returns no work, the JSON response includes a `reason` field: `no_works` (nothing exists), `all_done` (all complete), or `all_blocked` (remaining are blocked).
 | List all sessions | `baragi session list` |
-| List sessions for a work | `baragi session list --work=WORK-NNN` |
+| List sessions for a work | `baragi session list --json='{"work":"WORK-NNN"}'` |
 | Attach session to work | `baragi session attach --session-id=<id> --work=WORK-NNN` |
 | Get session detail | `baragi session get --session-id=<id>` |
 | List active sessions | `baragi session active` |
@@ -123,7 +123,7 @@ If an agent starts the work without the dependency done and hits a compile error
 ## Rules
 
 - **BEFORE writing any code for a baragi work, you MUST run `baragi session start` followed by `baragi session attach`.** This is a hard prerequisite — no exceptions, even if the user provides the work ID and plan upfront.
-- JSON output is the default. Use `--json` flag on add/update commands for structured input (not output).
+- JSON output is the default. Use `--json` (global option) on any command for structured input (not output). Prefer `--json` over individual CLI flags.
 - Never manually set work status to `in_progress` — use `session start` which handles this atomically.
 - Never mark a work as `done` unless the user explicitly asks you to.
 - When a work has dependencies, check `baragi work deps WORK-NNN` before starting.
@@ -133,8 +133,8 @@ If an agent starts the work without the dependency done and hits a compile error
 
 | Flag | Scope | Purpose |
 |------|-------|---------|
-| `--json='{"key":"val"}'` | work add/update, list add/update, project update | Structured input — prefer over individual flags. CLI flags override JSON values. Arrays use JSON syntax: `"labels":["a","b"]` |
+| `--json='{"key":"val"}'` | **All commands** (global) | Structured input — prefer over individual flags. CLI flags override JSON values. String fields: `"status":"todo"`. Bool fields: `"all":true`. Arrays: `"labels":["a","b"]`. Fields filter: `"fields":["title","status"]` |
 | `--dry-run` | All mutating commands | Validate input without executing. Returns `{dry_run:true, parsed:{...}}` |
-| `--fields=title,status` | All resource-returning commands | Filter response fields to reduce output. `id` always included. Ignored in `--human` mode |
-| `--ndjson` | List commands (work list, list list, etc.) | One JSON object per line, no envelope. Conflicts with `--human` |
+| `--fields=title,status` | All resource-returning commands | Filter response fields to reduce output. `id` always included. Ignored in `--human` mode. Prefer `"fields"` inside `--json` |
+| `--ndjson` | List commands (work list, list list, etc.) | One JSON object per line, no envelope. Conflicts with `--human`. Can also be set via `--json='{"ndjson":true}'` |
 | `baragi describe [cmd] [sub]` | Standalone | Schema introspection — discover command options, types, formats at runtime |
