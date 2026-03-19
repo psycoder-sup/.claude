@@ -25,9 +25,11 @@
       "mcp__plugin_slack_slack__*",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "Bash(gh pr create:*)",
       "mcp__pencil",
-      "mcp__plugin_figma_figma__*"
+      "mcp__plugin_figma_figma__*",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "mcp__context7__*"
     ],
     "deny": [
       "Bash(git -C:*)"
