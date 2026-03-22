@@ -74,6 +74,7 @@ setup_symlinks() {
     # --- Scripts -> ~/.local/bin ---
     info "scripts (~/.local/bin)"
     create_symlink "$DOTFILES_DIR/tmux/tmux-sessionizer"           "$HOME/.local/bin/tmux-sessionizer"
+    create_symlink "$DOTFILES_DIR/scripts/gw-cmux.sh"              "$HOME/.local/bin/gw-cmux"
     echo
 
     # --- Ghostty ---

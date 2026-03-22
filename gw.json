@@ -1,0 +1,4 @@
+{
+  "start": ["echo \"[gw] start hook running in $GW_TARGET\""],
+  "archive": ["echo \"[gw] archive hook running in $GW_TARGET\""]
+}
