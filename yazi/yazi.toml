@@ -8,6 +8,15 @@ linemode = "none"
 [preview]
 wrap = "yes"
 
+[[opener.markdown]]
+run   = 'cmux markdown %s'
+block = true
+desc  = "Open in cmux markdown"
+
+[[open.prepend_rules]]
+url  = "*.md"
+use  = "markdown"
+
 [[plugin.prepend_previewers]]
 url = "*.md"
 run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"'
