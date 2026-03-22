@@ -99,10 +99,16 @@ fi
 
 # Line 2: context | 5h | 7d
 context_text=""
-if [ "$SHOW_CONTEXT" = "1" ] && [ -n "$context_used" ] && [ "$context_used" -eq "$context_used" ] 2>/dev/null; then
-  ctx_dot_color=$(get_dot_color "$context_used")
-  ctx_dots=$(build_dots "$context_used")
-  context_text="${WHITE}Ctx ${ctx_dot_color}${ctx_dots} ${CYAN}${context_used}%${RESET}"
+if [ "$SHOW_CONTEXT" = "1" ]; then
+  if [ -n "$context_used" ] && [ "$context_used" -eq "$context_used" ] 2>/dev/null; then
+    ctx_dot_color=$(get_dot_color "$context_used")
+    ctx_dots=$(build_dots "$context_used")
+    context_text="${WHITE}Ctx ${ctx_dot_color}${ctx_dots} ${CYAN}${context_used}%${RESET}"
+  else
+    ctx_dot_color=$(get_dot_color 0)
+    ctx_dots=$(build_dots 0)
+    context_text="${WHITE}Ctx ${ctx_dot_color}${ctx_dots} ${CYAN}0%${RESET}"
+  fi
 fi
 
 format_reset_time() {
@@ -161,17 +167,14 @@ line1=""
 line2=""
 separator="${DIM} │ ${RESET}"
 
-append_spaced() { local -n _ref=$1; _ref="${_ref:+$_ref }$2"; }
-append_sep()    { local -n _ref=$1; _ref="${_ref:+$_ref$separator}$2"; }
-
 # Line 1: pill badges, space separated
 for part in "$session_text" "$model_text" "$dir_text" "$branch_text"; do
-  [ -n "$part" ] && append_spaced line1 "$part"
+  [ -n "$part" ] && line1="${line1:+$line1 }$part"
 done
 
 # Line 2: context | 5h usage | 7d usage
 for part in "$context_text" "$usage_5h_text" "$usage_7d_text"; do
-  [ -n "$part" ] && append_sep line2 "$part"
+  [ -n "$part" ] && line2="${line2:+$line2$separator}$part"
 done
 
 printf "%s\n%s\n" "$line1" "$line2"
