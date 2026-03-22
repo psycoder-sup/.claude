@@ -1,19 +1,9 @@
 #!/usr/bin/env swift
 
 import Foundation
-func readSessionKey() -> String? {
-    guard let key = ProcessInfo.processInfo.environment["CLAUDE_SESSION_KEY"] else {
-        return nil
-    }
-    let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmedKey.isEmpty ? nil : trimmedKey
-}
-func readOrganizationId() -> String? {
-    guard let orgId = ProcessInfo.processInfo.environment["CLAUDE_ORG_ID"] else {
-        return nil
-    }
-    let trimmedOrgId = orgId.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmedOrgId.isEmpty ? nil : trimmedOrgId
+func readEnv(_ key: String) -> String? {
+    let value = ProcessInfo.processInfo.environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return value?.isEmpty == false ? value : nil
 }
 struct UsageData {
     let fiveHourUtil: Int
@@ -70,12 +60,12 @@ func fetchUsageData(sessionKey: String, orgId: String) async throws -> UsageData
 // Main execution
 // Use Task to run async code, RunLoop keeps script alive until exit() is called
 Task {
-    guard let sessionKey = readSessionKey() else {
+    guard let sessionKey = readEnv("CLAUDE_SESSION_KEY") else {
         print("ERROR:NO_SESSION_KEY")
         exit(1)
     }
 
-    guard let orgId = readOrganizationId() else {
+    guard let orgId = readEnv("CLAUDE_ORG_ID") else {
         print("ERROR:NO_ORG_CONFIGURED")
         exit(1)
     }

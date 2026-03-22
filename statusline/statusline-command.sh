@@ -2,80 +2,48 @@
 config_file="$HOME/.claude/statusline/statusline-config.txt"
 if [ -f "$config_file" ]; then
   source "$config_file"
-  show_session=$SHOW_SESSION_ID
-  show_dir=$SHOW_DIRECTORY
-  show_branch=$SHOW_BRANCH
-  show_model=$SHOW_MODEL
-  show_context=$SHOW_CONTEXT
-  show_usage=$SHOW_USAGE
-  show_bar=$SHOW_PROGRESS_BAR
-  show_reset=$SHOW_RESET_TIME
 else
-  show_session=1
-  show_dir=1
-  show_branch=1
-  show_model=1
-  show_context=1
-  show_usage=1
-  show_bar=1
-  show_reset=1
+  SHOW_SESSION_ID=1 SHOW_DIRECTORY=1 SHOW_BRANCH=1 SHOW_MODEL=1
+  SHOW_CONTEXT=1 SHOW_USAGE=1 SHOW_PROGRESS_BAR=1 SHOW_RESET_TIME=1
 fi
 
 input=$(cat)
 session_id=$(echo "$input" | grep -o '"session_id":"[^"]*"' | head -1 | sed 's/"session_id":"//;s/"$//' | cut -c1-8)
 current_dir_path=$(echo "$input" | grep -o '"current_dir":"[^"]*"' | head -1 | sed 's/"current_dir":"//;s/"$//')
 current_dir=$(basename "$current_dir_path")
-model_name=$(echo "$input" | grep -o '"display_name":"[^"]*"' | head -1 | sed 's/"display_name":"//;s/"$//')
+model_name=$(echo "$input" | grep -o '"display_name":"[^"]*"' | head -1 | sed 's/"display_name":"//;s/"$//' | sed 's/^\([A-Z]\)[a-z]* \([0-9.]*\).*/\1 \2/')
 context_used=$(echo "$input" | grep -o '"used_percentage":[0-9.]*' | head -1 | sed 's/"used_percentage"://' | cut -d'.' -f1)
-BLUE=$'\033[0;34m'
-GREEN=$'\033[0;32m'
-GRAY=$'\033[0;90m'
-YELLOW=$'\033[0;33m'
-RESET=$'\033[0m'
 
+RESET=$'\033[0m'
+DIM=$'\033[0;90m'
 WHITE=$'\033[1;37m'
 CYAN=$'\033[38;5;44m'
-DIM=$'\033[0;90m'
 
-# Dot gradient: green → red (shared by all indicators)
-DOT_1=$'\033[38;5;22m'    # dark green
-DOT_2=$'\033[38;5;28m'    # soft green
-DOT_3=$'\033[38;5;34m'    # medium green
-DOT_4=$'\033[38;5;76m'    # bright green
-DOT_5=$'\033[38;5;142m'   # olive/yellow-green
-DOT_6=$'\033[38;5;178m'   # muted yellow
-DOT_7=$'\033[38;5;172m'   # yellow-orange
-DOT_8=$'\033[38;5;166m'   # darker orange
-DOT_9=$'\033[38;5;160m'   # dark red
-DOT_10=$'\033[38;5;124m'  # deep red
+# Powerline round caps
+PL_L=$'\xee\x82\xb6'
+PL_R=$'\xee\x82\xb4'
 
-# Build components (without separators)
-session_text=""
-if [ "$show_session" = "1" ] && [ -n "$session_id" ]; then
-  session_text="${GRAY}${session_id}${RESET}"
-fi
+# Pill: make_pill <cap_color_code> <bg_color_code> <fg_color_code> <text>
+make_pill() {
+  local cap_fg=$'\033[38;5;'"$1"'m'
+  local bg=$'\033[48;5;'"$1"'m'
+  local fg=$'\033[38;5;'"$2"'m'
+  local text="$3"
+  printf '%s' "${cap_fg}${PL_L}${bg}${fg} ${text} ${RESET}${cap_fg}${PL_R}${RESET}"
+}
 
-dir_text=""
-if [ "$show_dir" = "1" ]; then
-  dir_text="${BLUE}${current_dir}${RESET}"
-fi
+# Dot gradient: green -> red
+DOT_1=$'\033[38;5;22m'
+DOT_2=$'\033[38;5;28m'
+DOT_3=$'\033[38;5;34m'
+DOT_4=$'\033[38;5;76m'
+DOT_5=$'\033[38;5;142m'
+DOT_6=$'\033[38;5;178m'
+DOT_7=$'\033[38;5;172m'
+DOT_8=$'\033[38;5;166m'
+DOT_9=$'\033[38;5;160m'
+DOT_10=$'\033[38;5;124m'
 
-branch_text=""
-if [ "$show_branch" = "1" ]; then
-  if git rev-parse --git-dir > /dev/null 2>&1; then
-    branch=$(git branch --show-current 2>/dev/null)
-    [ -n "$branch" ] && branch_text="${GREEN}⎇ ${branch}${RESET}"
-  fi
-fi
-
-PURPLE=$'\033[38;5;141m'
-
-model_text=""
-if [ "$show_model" = "1" ] && [ -n "$model_name" ]; then
-  model_text="${PURPLE}${model_name}${RESET}"
-fi
-
-# Build dot indicator: filled ● for used portion, empty ○ for remaining (5 dots)
 build_dots() {
   local pct=$1 total=5
   local filled=$(( (pct * total + 50) / 100 ))
@@ -90,7 +58,6 @@ build_dots() {
   echo "$dots"
 }
 
-# Dot color by percentage (higher = more red)
 get_dot_color() {
   local pct=$1
   if [ "$pct" -le 10 ]; then echo "$DOT_1"
@@ -106,8 +73,33 @@ get_dot_color() {
   fi
 }
 
+# Line 1: pill badges
+session_text=""
+if [ "$SHOW_SESSION_ID" = "1" ] && [ -n "$session_id" ]; then
+  session_text=$(make_pill 238 248 "$session_id")
+fi
+
+model_text=""
+if [ "$SHOW_MODEL" = "1" ] && [ -n "$model_name" ]; then
+  model_text=$(make_pill 141 16 "$model_name")
+fi
+
+dir_text=""
+if [ "$SHOW_DIRECTORY" = "1" ] && [ -n "$current_dir" ]; then
+  dir_text=$(make_pill 24 153 "$current_dir")
+fi
+
+branch_text=""
+if [ "$SHOW_BRANCH" = "1" ]; then
+  if git rev-parse --git-dir > /dev/null 2>&1; then
+    branch=$(git branch --show-current 2>/dev/null)
+    [ -n "$branch" ] && branch_text=$(make_pill 22 150 "$(printf '\xe2\x8e\x87') ${branch}")
+  fi
+fi
+
+# Line 2: context | 5h | 7d
 context_text=""
-if [ "$show_context" = "1" ] && [ -n "$context_used" ] && [ "$context_used" -eq "$context_used" ] 2>/dev/null; then
+if [ "$SHOW_CONTEXT" = "1" ] && [ -n "$context_used" ] && [ "$context_used" -eq "$context_used" ] 2>/dev/null; then
   ctx_dot_color=$(get_dot_color "$context_used")
   ctx_dots=$(build_dots "$context_used")
   context_text="${WHITE}Ctx ${ctx_dot_color}${ctx_dots} ${CYAN}${context_used}%${RESET}"
@@ -127,10 +119,10 @@ format_reset_time() {
 
 usage_5h_text=""
 usage_7d_text=""
-if [ "$show_usage" = "1" ]; then
+if [ "$SHOW_USAGE" = "1" ]; then
   swift_result=$(swift "$HOME/.claude/statusline/fetch-claude-usage.swift" 2>/dev/null)
 
-  if [ $? -eq 0 ] && [ -n "$swift_result" ]; then
+  if [ -n "$swift_result" ]; then
     util_5h=$(echo "$swift_result" | cut -d'|' -f1)
     resets_5h=$(echo "$swift_result" | cut -d'|' -f2)
     util_7d=$(echo "$swift_result" | cut -d'|' -f3)
@@ -140,7 +132,7 @@ if [ "$show_usage" = "1" ]; then
       dot_color_5h=$(get_dot_color "$util_5h")
       dots_5h=$(build_dots "$util_5h")
       reset_5h_display=""
-      [ "$show_reset" = "1" ] && reset_5h_display=$(format_reset_time "$resets_5h")
+      [ "$SHOW_RESET_TIME" = "1" ] && reset_5h_display=$(format_reset_time "$resets_5h")
       usage_5h_text="${WHITE}5h ${dot_color_5h}${dots_5h} ${CYAN}${util_5h}%${DIM}${reset_5h_display}${RESET}"
     else
       usage_5h_text="${WHITE}5h ${DIM}○○○○○ ~${RESET}"
@@ -150,7 +142,7 @@ if [ "$show_usage" = "1" ]; then
       dot_color_7d=$(get_dot_color "$util_7d")
       dots_7d=$(build_dots "$util_7d")
       reset_7d_display=""
-      if [ "$show_reset" = "1" ] && [ -n "$resets_7d" ] && [ "$resets_7d" != "null" ]; then
+      if [ "$SHOW_RESET_TIME" = "1" ] && [ -n "$resets_7d" ] && [ "$resets_7d" != "null" ]; then
         iso_7d=$(echo "$resets_7d" | sed 's/\.[0-9]*[+-].*$//')
         epoch_7d=$(date -ju -f "%Y-%m-%dT%H:%M:%S" "$iso_7d" "+%s" 2>/dev/null)
         [ -n "$epoch_7d" ] && reset_7d_display=" @$(date -r "$epoch_7d" "+%m/%d" 2>/dev/null)"
@@ -167,39 +159,19 @@ fi
 
 line1=""
 line2=""
-separator="${GRAY} │ ${RESET}"
+separator="${DIM} │ ${RESET}"
 
-# Line 1: session | model | project root | branch
-[ -n "$session_text" ] && line1="${session_text}"
+append_spaced() { local -n _ref=$1; _ref="${_ref:+$_ref }$2"; }
+append_sep()    { local -n _ref=$1; _ref="${_ref:+$_ref$separator}$2"; }
 
-if [ -n "$model_text" ]; then
-  [ -n "$line1" ] && line1="${line1}${separator}"
-  line1="${line1}${model_text}"
-fi
-
-if [ -n "$dir_text" ]; then
-  [ -n "$line1" ] && line1="${line1}${separator}"
-  line1="${line1}${dir_text}"
-fi
-
-if [ -n "$branch_text" ]; then
-  [ -n "$line1" ] && line1="${line1}${separator}"
-  line1="${line1}${branch_text}"
-fi
+# Line 1: pill badges, space separated
+for part in "$session_text" "$model_text" "$dir_text" "$branch_text"; do
+  [ -n "$part" ] && append_spaced line1 "$part"
+done
 
 # Line 2: context | 5h usage | 7d usage
-if [ -n "$context_text" ]; then
-  line2="${context_text}"
-fi
-
-if [ -n "$usage_5h_text" ]; then
-  [ -n "$line2" ] && line2="${line2}${separator}"
-  line2="${line2}${usage_5h_text}"
-fi
-
-if [ -n "$usage_7d_text" ]; then
-  [ -n "$line2" ] && line2="${line2}${separator}"
-  line2="${line2}${usage_7d_text}"
-fi
+for part in "$context_text" "$usage_5h_text" "$usage_7d_text"; do
+  [ -n "$part" ] && append_sep line2 "$part"
+done
 
 printf "%s\n%s\n" "$line1" "$line2"
