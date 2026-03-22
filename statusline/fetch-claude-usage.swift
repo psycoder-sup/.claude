@@ -15,7 +15,14 @@ func readOrganizationId() -> String? {
     let trimmedOrgId = orgId.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmedOrgId.isEmpty ? nil : trimmedOrgId
 }
-func fetchUsageData(sessionKey: String, orgId: String) async throws -> (utilization: Int, resetsAt: String?) {
+struct UsageData {
+    let fiveHourUtil: Int
+    let fiveHourResets: String?
+    let dailyUtil: Int?
+    let dailyResets: String?
+}
+
+func fetchUsageData(sessionKey: String, orgId: String) async throws -> UsageData {
     // Build URL safely - validate orgId doesn't contain path traversal
     guard !orgId.contains(".."), !orgId.contains("/") else {
         throw NSError(domain: "ClaudeAPI", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid organization ID"])
@@ -39,9 +46,22 @@ func fetchUsageData(sessionKey: String, orgId: String) async throws -> (utilizat
 
     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
        let fiveHour = json["five_hour"] as? [String: Any],
-       let utilization = fiveHour["utilization"] as? Int {
-        let resetsAt = fiveHour["resets_at"] as? String
-        return (utilization, resetsAt)
+       let fiveHourUtil = fiveHour["utilization"] as? Int {
+        let fiveHourResets = fiveHour["resets_at"] as? String
+
+        var dailyUtil: Int? = nil
+        var dailyResets: String? = nil
+        if let sevenDay = json["seven_day"] as? [String: Any] {
+            dailyUtil = sevenDay["utilization"] as? Int
+            dailyResets = sevenDay["resets_at"] as? String
+        }
+
+        return UsageData(
+            fiveHourUtil: fiveHourUtil,
+            fiveHourResets: fiveHourResets,
+            dailyUtil: dailyUtil,
+            dailyResets: dailyResets
+        )
     }
 
     throw NSError(domain: "ClaudeAPI", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])
@@ -61,14 +81,13 @@ Task {
     }
 
     do {
-        let (utilization, resetsAt) = try await fetchUsageData(sessionKey: sessionKey, orgId: orgId)
+        let usage = try await fetchUsageData(sessionKey: sessionKey, orgId: orgId)
 
-        // Output format: UTILIZATION|RESETS_AT
-        if let resets = resetsAt {
-            print("\(utilization)|\(resets)")
-        } else {
-            print("\(utilization)|")
-        }
+        // Output format: 5H_UTIL|5H_RESETS|DAILY_UTIL|DAILY_RESETS
+        let fiveResets = usage.fiveHourResets ?? ""
+        let dUtil = usage.dailyUtil.map { String($0) } ?? ""
+        let dResets = usage.dailyResets ?? ""
+        print("\(usage.fiveHourUtil)|\(fiveResets)|\(dUtil)|\(dResets)")
         exit(0)
     } catch {
         print("ERROR:\(error.localizedDescription)")
