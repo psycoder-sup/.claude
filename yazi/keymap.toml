@@ -2,6 +2,11 @@
 # See: https://yazi-rs.github.io/docs/configuration/keymap
 
 [[mgr.prepend_keymap]]
+on   = "l"
+run  = "plugin smart-enter"
+desc = "Enter the child directory, or open the file"
+
+[[mgr.prepend_keymap]]
 on   = ["m", "s"]
 run  = "linemode size"
 desc = "Linemode: size"
