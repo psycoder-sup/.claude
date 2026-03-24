@@ -33,7 +33,10 @@ Phase 3: Review     (devils-advocate scores & critiques)
     No
     |
     v
-Phase 3b: Revise    (feature-planner addresses critique)
+Phase 3b: Consult   (ask user how to address critique)
+    |
+    v
+Phase 3c: Revise    (feature-planner applies user's direction)
     |
     v
 (back to Phase 3, max 3 cycles)
@@ -115,9 +118,21 @@ Format your score as:
 List the specific issues that must be fixed to raise the score above 0.8 under a "Required Fixes" heading.
 ```
 
-### Phase 3b: Revise (if score < 0.8)
+### Phase 3b: Consult User (if score < 0.8)
 
-If the score is below 0.8, launch the `feature-planner` agent to revise.
+If the score is below 0.8, **do not send the critique directly to feature-planner**. Instead, present the critique to the user and ask for their direction.
+
+**Use the `AskUserQuestion` tool** to present:
+
+1. The current score
+2. A concise summary of each issue under "Required Fixes" (one bullet per issue)
+3. For each issue, ask the user how they'd like to address it — e.g., accept the suggestion, take a different approach, defer to a later version, or disagree and keep as-is
+
+Wait for the user's responses before proceeding.
+
+### Phase 3c: Revise (apply user's direction)
+
+Launch the `feature-planner` agent to revise based on the user's decisions.
 
 **Agent prompt structure:**
 
@@ -128,7 +143,11 @@ The devils-advocate review scored it {score}/1.0. Here is the critique:
 
 {full critique from devils-advocate}
 
-Address all issues listed under "Required Fixes". Do not remove or weaken existing strong sections. Update the PRD version number (e.g., 1.0 -> 1.1).
+The user has reviewed the critique and provided the following direction:
+
+{user's responses from Phase 3b}
+
+Apply the user's decisions to the PRD. Where the user accepted a suggestion, address it. Where the user disagreed or deferred, leave that section as-is or move it to Open Questions as appropriate. Do not remove or weaken existing strong sections. Update the PRD version number (e.g., 1.0 -> 1.1).
 ```
 
 Then return to Phase 3 (review again). **Maximum 3 revision cycles** — if the score hasn't reached 0.8 after 3 revisions, finalize anyway and note the remaining concerns.
@@ -168,8 +187,9 @@ For "edit the PRD", "update the PRD for X", "revise the PRD":
 ## Important Rules
 
 - **Always use `AskUserQuestion` tool to present clarifying questions** — do not answer on the user's behalf
+- **Never auto-revise** — when the devil's advocate raises issues, always consult the user first (Phase 3b) before having feature-planner revise
 - **Show progress** — after each review cycle, tell the user the current score and what's being revised
-- **Preserve context** — pass the full critique text to the feature-planner during revision
+- **Preserve context** — pass both the full critique and the user's direction to the feature-planner during revision
 - **Cap revisions at 3** — avoid infinite loops
 - **Use kebab-case** for the PRD filename: `docs/feature/{feature-name}/{feature-name}-prd.md`
 
