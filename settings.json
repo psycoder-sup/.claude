@@ -115,7 +115,8 @@
     "plugin-dev@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": false,
     "context7@claude-plugins-official": true,
-    "slack@claude-plugins-official": true
+    "slack@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true
   },
   "spinnerVerbs": {
     "mode": "replace",
