@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# cmux-sessionizer — fuzzy-find directories and cmux workspaces
+#
+# Usage:
+#   cmux-sessionizer              # interactive fzf picker
+#   cmux-sessionizer /path/to/dir # open directory directly
+
+set -e
+
+CONFIG_FILE_NAME="cmux-sessionizer.conf"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cmux-sessionizer"
+CONFIG_FILE="$CONFIG_DIR/$CONFIG_FILE_NAME"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+fi
+
+# --- Sanity checks ---
+
+if ! command -v cmux &>/dev/null; then
+    echo "cmux is not installed."
+    exit 1
+fi
+
+if ! command -v fzf &>/dev/null; then
+    echo "fzf is not installed."
+    exit 1
+fi
+
+# --- Defaults ---
+
+[[ -n "$CS_SEARCH_PATHS" ]] || CS_SEARCH_PATHS=(~/ ~/00_Code)
+
+if [[ -n "${CS_EXTRA_SEARCH_PATHS+x}" && ${#CS_EXTRA_SEARCH_PATHS[@]} -gt 0 ]]; then
+    CS_SEARCH_PATHS+=("${CS_EXTRA_SEARCH_PATHS[@]}")
+fi
+
+# --- Functions ---
+
+find_dirs() {
+    # List existing cmux workspaces (skip the currently selected one)
+    # Format: "[*] workspace:N  <name>  [selected]?"
+    cmux list-workspaces 2>/dev/null | while read -r line; do
+        [[ "$line" == \** ]] && continue
+        local name
+        name=$(echo "$line" | awk '{print $2}')
+        echo "[CMUX] $name"
+    done
+
+    for entry in "${CS_SEARCH_PATHS[@]}"; do
+        if [[ "$entry" =~ ^([^:]+):([0-9]+)$ ]]; then
+            path="${BASH_REMATCH[1]}"
+            depth="${BASH_REMATCH[2]}"
+        else
+            path="$entry"
+            depth=""
+        fi
+
+        [[ -d "$path" ]] && find "$path" -mindepth 1 -maxdepth "${depth:-${CS_MAX_DEPTH:-1}}" \
+            -path '*/.git' -prune -o -type d -print
+    done
+}
+
+find_workspace_ref() {
+    local name="$1"
+    cmux list-workspaces 2>/dev/null | awk -v name="$name" '$0 ~ name {for(i=1;i<=NF;i++) if($i ~ /^workspace:/) {print $i; exit}}'
+}
+
+hydrate() {
+    local ws_ref="$1" dir="$2"
+
+    # Look for hydrate config: project-local first, then global
+    local hydrate_file=""
+    if [[ -f "$dir/.cmux-sessionizer" ]]; then
+        hydrate_file="$dir/.cmux-sessionizer"
+    elif [[ -f "$CONFIG_DIR/.cmux-sessionizer" ]]; then
+        hydrate_file="$CONFIG_DIR/.cmux-sessionizer"
+    fi
+
+    if [[ -n "$hydrate_file" ]]; then
+        # Source hydrate file with workspace ref and dir available
+        CMUX_WS_REF="$ws_ref" CMUX_WS_DIR="$dir" source "$hydrate_file"
+        return
+    fi
+
+    # No hydrate file found — workspace created with single terminal (cmux default)
+}
+
+create_workspace() {
+    local dir="$1"
+    local name
+    name=$(basename "$dir" | tr '.:/ ' '_' | sed 's/^_*//')
+
+    local ws_ref
+    ws_ref=$(cmux new-workspace --cwd "$dir" | awk '{print $2}')
+    cmux rename-workspace --workspace "$ws_ref" "$name"
+
+    hydrate "$ws_ref" "$dir"
+
+    echo "[cmux-sessionizer] Created workspace: $name ($ws_ref)"
+}
+
+switch_workspace() {
+    local name="$1"
+    local ws_ref
+    ws_ref=$(find_workspace_ref "$name")
+
+    if [[ -n "$ws_ref" ]]; then
+        cmux select-workspace --workspace "$ws_ref"
+    else
+        echo "[cmux-sessionizer] Workspace not found: $name"
+        exit 1
+    fi
+}
+
+# --- Main ---
+
+selected=""
+
+if [[ $# -gt 0 ]]; then
+    selected="$1"
+else
+    selected=$(find_dirs | fzf)
+fi
+
+if [[ -z "$selected" ]]; then
+    exit 0
+fi
+
+if [[ "$selected" =~ ^\[CMUX\]\ (.+)$ ]]; then
+    switch_workspace "${BASH_REMATCH[1]}"
+else
+    create_workspace "$selected"
+fi

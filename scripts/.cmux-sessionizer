@@ -1,0 +1,42 @@
+# cmux-sessionizer hydrate script (default layout)
+# Sourced when a new cmux workspace is created via cmux-sessionizer
+#
+# Available variables:
+#   CMUX_WS_REF  — workspace ref (e.g., workspace:3)
+#   CMUX_WS_DIR  — workspace directory path
+#
+# Layout:
+# +--------+--------+
+# | yazi   | claude |
+# | lazygit|        |
+# +--------+--------+
+# | terminal        |
+# +-----------------+
+
+ws="$CMUX_WS_REF"
+
+s_yazi=$(cmux list-pane-surfaces --workspace "$ws" | awk '{print $2}')
+p_yazi=$(cmux list-panes --workspace "$ws" | awk '{print $2}')
+
+# Split bottom for terminal (full width)
+s_terminal=$(cmux new-split down --workspace "$ws" --surface "$s_yazi" | awk '{print $2}')
+
+# Split top right for claude
+s_claude=$(cmux new-split right --workspace "$ws" --surface "$s_yazi" | awk '{print $2}')
+
+# Add lazygit as a tab in the yazi pane
+s_lazygit=$(cmux new-surface --workspace "$ws" --pane "$p_yazi" | awk '{print $2}')
+
+# Label tabs
+cmux rename-tab --workspace "$ws" --surface "$s_yazi" "yazi"
+cmux rename-tab --workspace "$ws" --surface "$s_claude" "claude"
+cmux rename-tab --workspace "$ws" --surface "$s_lazygit" "lazygit"
+cmux rename-tab --workspace "$ws" --surface "$s_terminal" "terminal"
+
+# Launch apps
+cmux send --workspace "$ws" --surface "$s_lazygit" "lazygit"
+cmux send-key --workspace "$ws" --surface "$s_lazygit" Enter
+cmux send --workspace "$ws" --surface "$s_claude" "claude"
+cmux send-key --workspace "$ws" --surface "$s_claude" Enter
+cmux send --workspace "$ws" --surface "$s_yazi" "yazi"
+cmux send-key --workspace "$ws" --surface "$s_yazi" Enter

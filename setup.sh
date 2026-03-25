@@ -71,9 +71,16 @@ setup_symlinks() {
     create_symlink "$DOTFILES_DIR/tmux/tmux-sessionizer.conf"  "$HOME/.config/tmux-sessionizer/tmux-sessionizer.conf"
     echo
 
+    # --- cmux ---
+    info "cmux"
+    create_symlink "$DOTFILES_DIR/scripts/cmux-sessionizer.conf"  "$HOME/.config/cmux-sessionizer/cmux-sessionizer.conf"
+    create_symlink "$DOTFILES_DIR/scripts/.cmux-sessionizer"      "$HOME/.config/cmux-sessionizer/.cmux-sessionizer"
+    echo
+
     # --- Scripts -> ~/.local/bin ---
     info "scripts (~/.local/bin)"
     create_symlink "$DOTFILES_DIR/tmux/tmux-sessionizer"           "$HOME/.local/bin/tmux-sessionizer"
+    create_symlink "$DOTFILES_DIR/scripts/cmux-sessionizer"        "$HOME/.local/bin/cmux-sessionizer"
     create_symlink "$DOTFILES_DIR/scripts/gw-cmux.sh"              "$HOME/.local/bin/gw-cmux"
     echo
 
