@@ -50,9 +50,11 @@ cmd_add() {
   resolve_repo
   resolve_worktree "$branch"
 
-  # Create worktree: use existing branch if found, otherwise create new
-  if git show-ref --verify --quiet "refs/remotes/origin/$branch" ||
-     git show-ref --verify --quiet "refs/heads/$branch"; then
+  # Skip worktree creation if it already exists, otherwise create
+  if [ -d "$wt_path" ]; then
+    echo "[gw-cmux] Worktree already exists: $wt_path"
+  elif git show-ref --verify --quiet "refs/remotes/origin/$branch" ||
+       git show-ref --verify --quiet "refs/heads/$branch"; then
     git worktree add "$wt_path" "$branch"
   else
     git worktree add "$wt_path" -b "$branch"
