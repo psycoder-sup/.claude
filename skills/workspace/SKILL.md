@@ -1,13 +1,13 @@
 ---
 name: workspace
-description: This skill should be used when the user asks to "create a worktree", "new workspace", "open workspace", "remove workspace", "archive workspace", "list worktrees", "clean up workspace", or needs to manage cmux workspaces with git worktrees.
-allowed-tools: Bash(gw-cmux:*), Bash(cmux:*), Bash(git:*)
+description: This skill should be used when the user asks to "create a worktree", "new workspace", "open workspace", "remove workspace", "archive workspace", "list worktrees", "clean up workspace", or needs to manage git worktrees.
+allowed-tools: Bash(git:*)
 user-invocable: true
 ---
 
 # Workspace Skill
 
-Manage git worktrees with cmux workspaces using `gw-cmux`.
+Manage git worktrees using `git worktree` commands. Worktrees are stored at `~/.worktrees/<repo>/<branch>`.
 
 ## Arguments
 
@@ -19,20 +19,59 @@ Parse `$ARGUMENTS` into a **command** (`add`, `list`, `archive`, `remove`) and a
 
 ## Commands
 
-| Command | Usage | Description |
-|---------|-------|-------------|
-| `add` | `gw-cmux add <branch>` | Create worktree at `~/.worktrees/<repo>/<branch>` + cmux workspace with 4-pane layout (yazi, claude, lazygit, terminal) |
-| `list` | `gw-cmux list` | List all worktrees for the current repo |
-| `archive` | `gw-cmux archive <branch>` | Run archive hooks, remove worktree + cmux workspace. Fails if uncommitted changes exist. |
-| `remove` | `gw-cmux remove <branch>` | Force remove worktree + cmux workspace. Ignores uncommitted changes. |
+### add `<branch>`
 
-## Execution
+Create a new worktree. Branch names with `/` are sanitized to `-` in the path.
 
 ```bash
-gw-cmux <command> <branch>
+# Determine repo info
+repo_root=$(git rev-parse --show-toplevel)
+repo_name=$(basename "$repo_root")
+safe_branch="${branch//\//-}"
+wt_path="$HOME/.worktrees/$repo_name/$safe_branch"
+
+# Create worktree (skip if already exists)
+if [ -d "$wt_path" ]; then
+  echo "Worktree already exists: $wt_path"
+elif git show-ref --verify --quiet "refs/remotes/origin/$branch" || \
+     git show-ref --verify --quiet "refs/heads/$branch"; then
+  git worktree add "$wt_path" "$branch"
+else
+  git worktree add "$wt_path" -b "$branch"
+fi
 ```
 
-Branch names with `/` are sanitized to `-` in the worktree path automatically.
+### list
+
+```bash
+git worktree list
+```
+
+### archive `<branch>`
+
+Safe removal — fails if there are uncommitted changes.
+
+```bash
+repo_root=$(git rev-parse --show-toplevel)
+repo_name=$(basename "$repo_root")
+safe_branch="${branch//\//-}"
+wt_path="$HOME/.worktrees/$repo_name/$safe_branch"
+
+git worktree remove "$wt_path"
+```
+
+### remove `<branch>`
+
+Force removal — discards uncommitted changes.
+
+```bash
+repo_root=$(git rev-parse --show-toplevel)
+repo_name=$(basename "$repo_root")
+safe_branch="${branch//\//-}"
+wt_path="$HOME/.worktrees/$repo_name/$safe_branch"
+
+git worktree remove --force "$wt_path"
+```
 
 ## When to Use Archive vs Remove
 
