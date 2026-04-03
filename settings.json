@@ -1,7 +1,8 @@
 {
   "env": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+	"CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
     "allow": [
@@ -18,7 +19,6 @@
       "mcp__claude_ai_Figma__*",
       "Skill(git-skill)",
       "Skill(baragi-skill)",
-      "Bash(baragi:*)",
       "Bash(find:*)",
       "Bash(curl:*)",
       "Bash(git:*)",
@@ -29,7 +29,9 @@
       "mcp__plugin_figma_figma__*",
       "Bash(gh pr create:*)",
       "Bash(gh pr edit:*)",
-      "mcp__context7__*"
+      "mcp__context7__*",
+      "Bash(baragi *)",
+      "Bash(gh issue view *)"
     ],
     "deny": [
       "Bash(git -C:*)"
@@ -113,7 +115,7 @@
   },
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true
