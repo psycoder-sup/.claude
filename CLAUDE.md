@@ -3,19 +3,19 @@
 Baragi is a CLI tool for work management. Essential commands:
 - `baragi next` — check next work
 - `baragi session attach --session-id="<session-id>" --work=WORK-NNN` — attach session to work (MUST run before writing code). `session start` is handled automatically by the SessionStart hook.
-- `baragi work update WORK-NNN --json='{"status":"done","summary":"..."}'` — mark done (only when user asks)
+- `baragi work update WORK-NNN --status=done --summary="..."` — mark done (only when user asks)
 - **Never use the `--human` option** with any baragi command.
-- **Always prefer `--json` over individual CLI flags** — `--json` is a global option available on ALL commands. Use `--json='{"key":"value"}'` instead of individual flags. CLI flags override JSON values when both are provided. Examples:
-  - `baragi work add --json='{"title":"Fix bug","priority":"high","labels":["backend","api"]}'`
-  - `baragi work update WORK-NNN --json='{"status":"done","summary":"Completed implementation"}'`
-  - `baragi work list --json='{"status":"todo","all":false,"fields":["title","status","is_blocked"]}'`
-  - `baragi next --json='{"all":true,"parent_id":"WORK-NNN","fields":["title","status","priority"]}'`
-  - `baragi list list --json='{"status":"active","ndjson":true}'`
-  - Array fields use JSON arrays (not CSV): `"labels":["a","b"]`, `"depends_on":["WORK-001"]`
-  - Boolean fields use JSON booleans: `"all":true`, `"ndjson":true`, `"blocked":true`
-  - Use `"fields":["title","status"]` inside JSON instead of `--fields=title,status`
-- **Use `--fields` to filter output** (or `"fields"` inside `--json`) — Always specify only the fields you need to reduce token usage.
+- **Always prefer individual CLI flags over `--json`** — `--json` uses `{}` braces which triggers Claude Code's Brace Execution permission prompts. Use individual flags instead. Examples:
+  - `baragi work add "Fix bug" --priority=high --labels=backend,api`
+  - `baragi work update WORK-NNN --status=done --summary="Completed implementation"`
+  - `baragi work list --status=todo --fields=title,status,is_blocked`
+  - `baragi next --all --parent-id=WORK-NNN --fields=title,status,priority`
+  - `baragi list list --status=active --ndjson`
+  - Array fields use CSV: `--labels=a,b`, `--depends-on=WORK-001,WORK-002`
+  - Boolean fields are flags: `--all`, `--ndjson`, `--blocked`
+- **Use `--fields` to filter output** — Always specify only the fields you need to reduce token usage.
   - `id` is always included automatically
+- **Avoid `--json`** — Only use `--json` as a last resort when no individual flag exists for a field. The `{}` braces in `--json='{"key":"value"}'` trigger permission prompts in Claude Code.
 
 For full workflow, commands, and rules, use the `/baragi-skill` skill.
 
