@@ -94,6 +94,7 @@ Based on the PRD requirements and codebase reality, design:
 - Navigation changes (new screens, registration)
 - Type definitions
 - Analytics instrumentation
+- Test strategy (mapped to PRD success criteria and functional requirements)
 
 ### Step 4: Write the SPEC
 
@@ -186,10 +187,38 @@ Follow this structure. Describe everything in prose, tables, and lists — no co
 ## 12. Implementation Phases
 [Shippable phases, each independently testable]
 
-## 13. Technical Risks & Mitigations
+## 13. Test Strategy
+### Mapping to PRD Success Criteria
+[Table mapping each PRD success metric (from Section 8) to how it will be verified technically. Include: metric name, target, verification method (automated test, manual QA, analytics dashboard, monitoring alert), and which implementation phase covers it.]
+
+| PRD Success Metric | Target | Verification Method | Phase |
+|--------------------|--------|---------------------|-------|
+
+### Mapping to Functional Requirements
+[Table mapping each PRD functional requirement (FR-XX) to specific test cases. Each FR should have at least one test case. Include: FR ID, test description, test type (unit/integration/e2e), and preconditions.]
+
+| FR ID | Test Description | Type | Preconditions |
+|-------|-----------------|------|---------------|
+
+### Unit Tests
+[What to unit test: pure logic, transformations, validation, state transitions. Specify which modules/functions need unit tests and what behaviors to assert. Follow the project's existing test patterns.]
+
+### Integration Tests
+[What to integration test: API calls with real database, cross-module interactions, permission enforcement, cache invalidation. Specify test scenarios and expected outcomes.]
+
+### End-to-End Tests
+[Critical user flows that need e2e coverage. Map directly to PRD user flows (Section 6). Specify: flow name, steps, assertions, and which PRD user stories (Section 4) they validate.]
+
+### Edge Case & Error Path Tests
+[Tests for empty states, error states, permission denials, concurrent operations, and boundary conditions identified in the PRD. Reference the specific PRD sections that define these states.]
+
+### Performance & Load Tests
+[If applicable: response time thresholds, concurrent user targets, data volume benchmarks. Tie back to PRD success metrics where performance targets are defined.]
+
+## 14. Technical Risks & Mitigations
 [Table: risk, impact, likelihood, mitigation]
 
-## 14. Open Technical Questions
+## 15. Open Technical Questions
 [Table: question, context, impact if unresolved]
 ```
 
@@ -207,3 +236,4 @@ Follow this structure. Describe everything in prose, tables, and lists — no co
 - **Think about rollback.** Migrations should be reversible. Features should be flag-gated.
 - **Name things consistently.** Follow the project's existing naming conventions.
 - **Spec the unhappy paths.** Define failure handling for every API call and loading/error/empty states for every screen.
+- **Trace tests to the PRD.** Every PRD success metric and functional requirement must have a corresponding test case. The test strategy is not generic — it is a direct mapping from what the PRD says to verify to how this spec verifies it.
