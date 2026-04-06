@@ -29,14 +29,14 @@ Phase 2: Draft      (feature-planner writes the PRD)
 Phase 3: Review     (devils-advocate scores & critiques)
     |
     score >= 0.8? --Yes--> Phase 4: Finalize --> Phase 5: Confirm
-    |
-    No
-    |
-    v
-Phase 3b: Consult   (ask user how to address critique)
-    |
-    v
-Phase 3c: Revise    (feature-planner applies user's direction)
+    |                                               |
+    No                                     User chooses one:
+    |                                      /       |        \
+    v                                     v        v         v
+Phase 3b: Consult                     5b: Walk   Approve   5c: Edits
+    |                                 through              then back
+    v                                 sections             to Phase 3
+Phase 3c: Revise                      together
     |
     v
 (back to Phase 3, max 3 cycles)
@@ -164,12 +164,30 @@ Once the score is >= 0.8 (or max cycles reached):
 
 ### Phase 5: User Confirmation
 
-**Use the `AskUserQuestion` tool** to ask the user to review and confirm or request edits.
+**Use the `AskUserQuestion` tool** to ask the user how they'd like to proceed:
 
-- If the user **approves**, the PRD is done.
-- If the user **requests edits**, proceed to Phase 5b.
+- **Review section by section** — walk through the PRD together (Phase 5b)
+- **Approve as-is** — mark the PRD as Approved, done
+- **Request specific edits** — user describes what to change (Phase 5c)
 
-### Phase 5b: User-Requested Edits
+### Phase 5b: Section-by-Section Review
+
+Walk through each of the 11 PRD sections with the user, one at a time:
+
+1. Present a concise summary of the current section (not the raw text — summarize the key points)
+2. Ask the user if they want to change anything or move to the next section
+3. If the user requests changes, apply edits directly using the Edit tool — do not re-launch the feature-planner agent for small changes
+4. If changes are substantial enough to affect other sections, flag this to the user
+5. After all 11 sections are reviewed, update the version number and version history, then mark the PRD as Approved
+
+**Guidelines for this phase:**
+- Be concise when presenting sections — bullet points over full quotes
+- Proactively flag inconsistencies you notice (e.g., a user story that contradicts a functional requirement based on earlier decisions)
+- When the user says something that contradicts the PRD, confirm the change before applying it
+- Apply edits incrementally as you go — don't batch them up
+- After editing, re-read the changed section to verify correctness if the user asks to see it
+
+### Phase 5c: User-Requested Edits
 
 Launch the `feature-planner` agent to apply edits, then return to Phase 3 (review loop resets to 3 new cycles).
 
