@@ -2,7 +2,7 @@
   "env": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-	"CLAUDE_CODE_NO_FLICKER": "1"
+    "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
     "allow": [
@@ -31,7 +31,8 @@
       "Bash(gh pr edit:*)",
       "mcp__context7__*",
       "Bash(baragi *)",
-      "Bash(gh issue view *)"
+      "Bash(gh issue view *)",
+      "Read(~/.claude/skills/**)"
     ],
     "deny": [
       "Bash(git -C:*)"
