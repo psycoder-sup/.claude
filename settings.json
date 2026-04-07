@@ -32,7 +32,8 @@
       "mcp__context7__*",
       "Bash(baragi *)",
       "Bash(gh issue view *)",
-      "Read(~/.claude/skills/**)"
+      "Read(~/.claude/skills/**)",
+      "Read(~/.claude/plugins/**)"
     ],
     "deny": [
       "Bash(git -C:*)"
