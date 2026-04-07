@@ -25,7 +25,6 @@
       "mcp__plugin_slack_slack__*",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "mcp__pencil",
       "mcp__plugin_figma_figma__*",
       "Bash(gh pr create:*)",
       "Bash(gh pr edit:*)",
@@ -33,7 +32,8 @@
       "Bash(baragi *)",
       "Bash(gh issue view *)",
       "Read(~/.claude/skills/**)",
-      "Read(~/.claude/plugins/**)"
+      "Read(~/.claude/plugins/**)",
+      "mcp__pencil"
     ],
     "deny": [
       "Bash(git -C:*)"
