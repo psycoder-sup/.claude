@@ -68,16 +68,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if [ -n \"$TMUX\" ]; then tmux list-clients -F '#{client_tty}' | while read tty; do printf '\\033]777;notify;Claude Code;Task completed\\007' > \"$tty\"; done; else printf '\\033]777;notify;Claude Code;Task completed\\007' > /dev/tty; fi &"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "AskUserQuestion",
