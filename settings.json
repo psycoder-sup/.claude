@@ -87,6 +87,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Read|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/validate-tmp-path.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "Notification": [
