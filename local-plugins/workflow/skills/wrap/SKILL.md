@@ -14,8 +14,8 @@ Execute these steps sequentially. Stop and report on any failure.
 
 ## Step 1: Polish Loop
 
-1. Run `/polish`. Skip only if the most recent code edits have already been polished (no new changes since last polish).
-2. If polish produced code changes, run `/polish` again.
+1. Run `/workflow:polish`. Skip only if the most recent code edits have already been polished (no new changes since last polish).
+2. If polish produced code changes, run `/workflow:polish` again.
 3. Repeat until polish finds nothing to fix.
 
 ## Step 2: Commit & Push

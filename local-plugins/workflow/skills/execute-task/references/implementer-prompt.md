@@ -46,44 +46,77 @@ Task tool (general-purpose):
 
     ### 1. Explore Context
 
-    Read the relevant SPEC sections and PRD requirements. Explore the codebase
-    to understand existing patterns, conventions, and file structure. Identify
-    the test framework and existing test patterns.
+    Read the relevant SPEC sections and PRD requirements. Pay special attention to:
+    - **SPEC Section 7 (Type Definitions)** — use these types verbatim; do not invent new ones unless the spec is wrong.
+    - **SPEC Section 13.5 (Test Skeletons)** — these are your starting failing tests.
 
-    ### 2. Write Tests First (TDD)
+    Explore the codebase to understand existing patterns, conventions, and file structure.
+    Identify the test framework and existing test patterns.
 
-    Write failing tests that cover:
-    - Each acceptance criterion from the task
-    - Happy path and error paths
-    - Edge cases mentioned in the spec
+    ### 2. Write Tests First (TDD) — MANDATORY TWO-COMMIT RHYTHM
 
-    Run the tests to confirm they fail for the expected reasons.
-    Use the test-runner-slim agent via Task tool for running tests.
+    This is a hard gate. Tests commit first, implementation commits second.
 
-    **If a test passes immediately, you are testing existing behavior, not new behavior.
-    Delete it and write a test that actually exercises your new code.**
+    **Step 2a — Write the failing tests:**
 
-    ### 3. Implement
+    Copy the test skeletons from SPEC Section 13.5 for the acceptance criteria in this task.
+    Flesh out skeleton bodies (imports, setup, assertions) enough to make them real, executable,
+    failing tests. If Section 13.5 is missing a skeleton for an acceptance criterion, write one.
 
-    Write the minimum code to make all tests pass.
-    - Follow existing codebase patterns and conventions
-    - Do not over-engineer or add features not in the task scope
-    - If a file grows beyond the task's intent, stop and report DONE_WITH_CONCERNS
+    Do NOT invent tests beyond what the acceptance criteria require. Do NOT write placeholder
+    `expect(true).toBe(true)` — every assertion must exercise real behavior.
 
-    ### 4. Run All Tests
+    **Step 2b — Run the failing tests:**
 
-    Run the full test suite (not just your tests) via test-runner-slim agent.
-    Ensure no regressions. If tests fail, fix and re-run.
+    Use the `test-runner-slim` agent via Task tool. Confirm the tests fail for the EXPECTED
+    reason (function not defined, type not found, etc. — not a syntax error or setup bug).
 
-    ### 5. Self-Review
+    **If a test passes immediately, you are testing existing behavior, not new behavior.**
+    Delete it and write a test that actually exercises your new code.
+
+    **Step 2c — Commit the failing tests (first commit):**
+
+    Stage ONLY the test files and commit with message prefix `test:`:
+
+    ```
+    test({scope}): add failing tests for {task-title}
+
+    Covers FR-XX from PRD.
+    All tests fail as expected: {brief failure summary}
+    ```
+
+    Do NOT include implementation files in this commit.
+
+    ### 3. Implement (Second Commit)
+
+    **Step 3a — Write the minimum code to make all tests pass:**
+
+    - Use the types from SPEC Section 7 verbatim.
+    - Follow existing codebase patterns and conventions.
+    - Do not over-engineer or add features not in the task scope.
+    - If a file grows beyond the task's intent, stop and report DONE_WITH_CONCERNS.
+
+    **Step 3b — Run all tests** (full suite via test-runner-slim). Ensure no regressions.
+
+    **Step 3c — Commit the implementation (second commit):**
+
+    ```
+    feat({scope}): implement {task-title}
+
+    Implements {acceptance criteria summary}.
+    All tests pass.
+    ```
+
+    ### 4. Self-Review
 
     Before reporting, review your work:
     - Did you implement everything in the task scope?
     - Did you add anything NOT in scope? Remove it.
     - Did you follow existing codebase conventions?
     - Are all tests passing?
+    - Is the test commit BEFORE the implementation commit? (`git log` should show `test:` then `feat:`.)
 
-    If you find issues, fix them before reporting.
+    If you find issues, fix them before reporting. Amending commits is fine if the TDD ordering is preserved; if not, reset and redo the commits in the correct order.
 
     ## When You're Stuck
 
@@ -110,6 +143,10 @@ Task tool (general-purpose):
 
     **Tests:**
     - X tests written, Y passing, Z failing
+
+    **Commits (in order):**
+    - `test: ...` — {short sha + message}
+    - `feat: ...` — {short sha + message}
 
     **Summary:** [1-2 sentences on what was implemented]
 

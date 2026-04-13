@@ -14,7 +14,7 @@ argument-hint: "<spec-file-path>"
 
 # Execute Work Orchestration
 
-Parse a SPEC document, extract implementation phases, and execute them sequentially by invoking `/execute-task` for each phase. Every phase goes through the mandatory 3-step flow (implement -> review spec compliance -> polish) enforced by the `/execute-task` skill.
+Parse a SPEC document, extract implementation phases, and execute them sequentially by invoking `/workflow:execute-task` for each phase. Every phase goes through the mandatory 3-step flow (implement -> review spec compliance -> polish) enforced by the `/workflow:execute-task` skill.
 
 ## Arguments
 
@@ -62,13 +62,24 @@ Phase 3: Final Verification
    - Deliverables
    - Acceptance criteria / "done when"
 
-   If phases reference other spec sections (e.g., "See Section 3: Database Schema"), include that referenced content in the phase text so the implementer subagent has full context without reading the spec.
+4. **Enrich each phase with relevant SPEC sections** (always inline, not just on explicit reference). The implementer subagent must have concrete types, contracts, and failing-test skeletons without having to read the whole SPEC. For each phase, inline:
 
-4. **Present the task list** to the user via `AskUserQuestion`:
+   - **Section 7 (Type Definitions)** — the full type code block. Every phase sees all types; the implementer uses only what it needs.
+   - **Section 13.5 (Test Skeletons)** — the skeletons for the acceptance criteria in this phase. Identify the relevant skeletons by matching the phase's FR references (e.g., "FR-03") against the skeleton's FR tag. If no FR mapping exists, include all skeletons whose test names match the phase's scope keywords.
+   - **Section 2 (Database Schema)** entries — include tables and columns the phase touches (keyword match on table names in the phase scope).
+   - **Section 3 (API Layer)** entries — include queries/mutations/endpoints the phase touches.
+   - **Section 5 (Component Architecture)** entries — include screens/components the phase touches.
+   - **Section 9 (Permissions & Security)** entries that apply to the phase's data operations.
+
+   If the SPEC has no Section 13.5 (older spec), fall back to inlining all test-related prose from Section 13. If Section 7 uses only prose tables (no code block), inline the tables verbatim.
+
+   Keep the inlined content verbatim — don't summarize. If total phase text exceeds ~10,000 characters, prefer truncating other parts of the phase over omitting Types or Skeletons.
+
+5. **Present the task list** to the user via `AskUserQuestion`:
    - Show: phase number, title, and one-line scope summary for each phase
    - Ask: "Proceed with executing all N phases?" with options to proceed, skip specific phases, or cancel
 
-5. **Create task tracking.** After user approval, use `TaskCreate` to create one task per approved phase. Each task should have:
+6. **Create task tracking.** After user approval, use `TaskCreate` to create one task per approved phase. Each task should have:
    - **subject:** "Phase N: {phase title}"
    - **description:** One-line scope summary of the phase
 
@@ -80,7 +91,7 @@ For each approved phase, in order:
 
 2. **Report progress:** "Starting phase N/M: {phase title}"
 
-3. **Invoke `/execute-task`** via `Skill` tool, passing pipe-delimited arguments:
+3. **Invoke `/workflow:execute-task`** via `Skill` tool, passing pipe-delimited arguments:
 
    ```
    /execute-task {phase_title} | {phase_full_text} | {spec_path} | {prd_path}
@@ -121,8 +132,8 @@ After all phases complete:
 
 ## Important Rules
 
-- **Always invoke `/execute-task` for each phase.** Never implement directly in this skill — that would bypass the 3-step enforcement.
+- **Always invoke `/workflow:execute-task` for each phase.** Never implement directly in this skill — that would bypass the 3-step enforcement.
 - **Sequential execution only.** Do not run phases in parallel — later phases may depend on earlier ones.
 - **User approval before execution.** Always present the extracted task list and get confirmation in Phase 1.
-- **Enrich phase text.** If a phase references other spec sections, inline that content so the subagent has complete context.
+- **Always inline Types + Test Skeletons** per phase (Step 4), even when the phase text doesn't explicitly reference them. The implementer subagent should never have to read the SPEC to get type code or failing-test starting points.
 - **Halt on BLOCKED.** Do not skip blocked phases automatically — always consult the user.

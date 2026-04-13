@@ -18,7 +18,8 @@ Detailed criteria for the spec-reviewer agent to score each SPEC section. The ov
 | 10. Performance Considerations | 7% | Must address real bottlenecks, not generic advice |
 | 11. Migration & Deployment | 8% | Irreversible migrations are catastrophic |
 | 12. Implementation Phases | 7% | Phases must be independently shippable |
-| 13. Test Strategy | 5% | Must trace back to PRD requirements |
+| 13. Test Strategy | 1% | PRD→test mapping tables (detailed scenarios live in 13.5) |
+| 13.5. Test Skeletons | 4% | Concrete failing-test outlines — implementer's starting code |
 | 14. Technical Risks & Mitigations | 3% | Honest risk assessment prevents surprises |
 | 15. Open Technical Questions | 2% | Honesty about unknowns |
 
@@ -96,11 +97,17 @@ Detailed criteria for the spec-reviewer agent to score each SPEC section. The ov
 - **0.4**: Only "Phase 1: Backend, Phase 2: Frontend" — not user-value-oriented.
 - **0.0**: Missing or single monolithic phase
 
-### 13. Test Strategy (5%)
-- **1.0**: PRD success metrics mapped to verification methods. PRD functional requirements (FR-XX) mapped to specific test cases. Unit, integration, e2e, and edge case tests specified with concrete scenarios. Follows existing test patterns.
-- **0.7**: Test types listed but not mapped to PRD requirements. Some scenarios specified.
+### 13. Test Strategy (1%)
+- **1.0**: PRD success metrics mapped to verification methods. PRD functional requirements (FR-XX) mapped to specific test cases. Unit, integration, e2e, and edge-case test types specified. Follows existing test patterns. (Concrete test code lives in Section 13.5.)
+- **0.7**: Mapping tables present but incomplete coverage.
 - **0.4**: "Write unit and integration tests" — no specifics or PRD traceability.
 - **0.0**: Missing
+
+### 13.5. Test Skeletons (4%)
+- **1.0**: Every FR in the PRD has at least one failing-test skeleton. Each skeleton has a real test name, a setup line, and real `expect(...)` / assertion calls in the project's test framework. Skeletons match the type signatures from Section 7.
+- **0.7**: Skeletons exist for most FRs but some are missing or use generic `expect(true).toBe(true)` placeholders.
+- **0.4**: Only a few skeletons, or skeletons don't match the real test framework, or assertions are placeholder-only.
+- **0.0**: Missing (automatic blocker — implementer has no TDD starting point)
 
 ### 14. Technical Risks & Mitigations (3%)
 - **1.0**: Real risks with impact, likelihood, and concrete mitigations. Risks are specific to this feature (not generic "server might go down"). At least one risk per major architectural decision.

@@ -76,12 +76,30 @@ Task tool (general-purpose):
     - Did they over-engineer or add unnecessary features?
     - Did they modify files outside the task scope?
 
-    ### 4. Run Tests
+    ### 4. Verify TDD Commit Order
+
+    Tests must have been committed BEFORE the implementation. Run:
+
+    ```bash
+    git log --oneline -n 10 -- <test-file-paths>
+    git log --oneline -n 10 -- <implementation-file-paths>
+    ```
+
+    For each acceptance criterion, confirm a `test:` commit exists AND appears earlier in
+    history than the `feat:` commit for that code. If the implementation commit is the
+    same as (or precedes) the test commit, that's a TDD violation — return FAIL with a
+    "TDD Violation" entry in the Issues list.
+
+    Placeholder `expect(true).toBe(true)` tests, or tests that would have passed against
+    an empty implementation, also count as TDD violations — the tests did not drive the
+    implementation.
+
+    ### 5. Run Tests
 
     Run the test suite via the test-runner-slim agent (Task tool) to verify
     all tests pass.
 
-    ### 5. Verdict
+    ### 6. Verdict
 
     For each checklist item, mark it:
     - **PASS**: Implemented correctly and tested

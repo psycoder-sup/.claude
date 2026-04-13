@@ -97,38 +97,39 @@ Dispatch via **Task tool** (general-purpose subagent). Wait for completion.
 
 ### Step 3: Polish
 
-Invoke the `/polish` skill via **Skill tool**, passing the changed files as scope:
+Invoke the `/workflow:polish` skill via **Skill tool**, passing the changed files as scope:
 
 ```
 /polish <changed-files-from-implementer-report>
 ```
 
-Wait for completion.
+`/workflow:polish` runs its own simplify + code-review gated loop (with its own internal retry budget of 2, independent from this skill's retry counter). Wait for completion.
 
-**Handle polish results:**
-- **No issues found / no changes made** — proceed to Step 4.
-- **Changes were made** — increment `retry_count`. If `retry_count < 3`, go back to Step 2 to re-verify spec compliance after polish changes. If `retry_count >= 3`, accept the current state and proceed to Step 4 with a note that retry limit was reached.
+**Handle polish verdict:**
+- **Verdict: PASS** (no Blocker/Major findings remain) — proceed to Step 4.
+  - If polish made changes (simplification or fixes), increment THIS skill's `retry_count`. If `retry_count < 3`, go back to Step 2 to re-verify spec compliance after the changes. If `retry_count >= 3`, accept and proceed to Step 4 with a retry-limit note.
+  - If polish made no changes, proceed directly to Step 4.
+- **Verdict: FAIL_AT_LIMIT** (Blocker/Major findings unresolved after 2 polish retries) — present the findings to the user via `AskUserQuestion`. Options:
+  - Accept the findings as tech debt and proceed to Step 4.
+  - Increment `retry_count` and return to Step 1 (re-implement with the findings as `previous_issues`).
+  - Halt with status `HALTED_AT_RETRY_LIMIT` and stop.
 
-### Step 4: Commit
+### Step 4: Verify Commits
 
-Create an atomic commit for this task's changes. This runs in the orchestrator session (not a subagent).
+The implementer subagent produces TWO commits per task (TDD enforcement):
+1. `test:` commit with the failing tests
+2. `feat:` commit with the implementation
 
-1. **Stage changed files** — `git add` the specific files from the implementer's changed files list. Do not use `git add -A`.
-2. **Commit** with a descriptive message following the project's conventional commit style:
+If polish made additional changes in Step 3, those may be uncommitted or amended into the `feat:` commit. Verify the final state:
 
-```bash
-git commit -m "$(cat <<'EOF'
-feat({scope}): {task title}
-
-Implements phase from {spec filename}.
-- {1-2 line summary of what was built}
-
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
-EOF
-)"
-```
-
-3. If the commit fails (e.g., pre-commit hook), fix the issue and retry the commit. Do not use `--no-verify`.
+1. **Check both commits exist** — `git log --oneline -n 5` should show `feat: ...` at HEAD and `test: ...` as its parent (or earlier if polish added a separate commit).
+2. **If polish made uncommitted changes**, amend them into the `feat:` commit (not the `test:` commit):
+   ```bash
+   git add <polished-files>
+   git commit --amend --no-edit
+   ```
+3. **If neither commit is present**, the implementer or spec-reviewer failed TDD enforcement — report BLOCKED.
+4. **Do not** squash `test:` and `feat:` into a single commit — the ordering is what makes TDD verifiable after the fact.
 
 ## Report
 
@@ -171,7 +172,7 @@ The chosen model tier applies to **Step 1 (Implement)** and **Step 2 (Review)** 
 ## Important Rules
 
 - **Never skip a step.** All 3 steps are mandatory for every task.
-- **Fresh context per step.** Each subagent (implement, review) starts with no conversation history. Only `/polish` runs in the current session context.
+- **Fresh context per step.** Each subagent (implement, review) starts with no conversation history. Only `/workflow:polish` runs in the current session context.
 - **Retry counter is shared** across Steps 1-3. Total max 3 retries per task, not per step.
 - **Do not fix code yourself.** Always dispatch a subagent. Fixing code in the orchestrator pollutes context.
 - **Use test-runner-slim** for all test execution (subagents handle this internally).
