@@ -15,7 +15,7 @@ argument-hint: "<WORK-NNN>"
 
 # Execute Baragi Work
 
-Fetch a baragi parent work item and its children, read the referenced spec/PRD documents, and execute children sequentially by invoking `/execute-task` for each. Every child goes through the mandatory 3-step flow (implement -> review spec compliance -> polish) enforced by the `/execute-task` skill.
+Fetch a baragi parent work item and its children, read the referenced spec/PRD documents, and execute children sequentially by invoking `/workflow:execute-task` for each. Every child goes through the mandatory 3-step flow (implement -> review spec compliance -> polish) enforced by the `/workflow:execute-task` skill.
 
 ## Arguments
 
@@ -112,7 +112,7 @@ For each child to execute, in dependency order:
    - Referenced spec sections (read from the spec file at the paths/sections cited in the child's `**Source Documents:**`)
    - PRD functional requirements cited in the child
 
-5. **Invoke `/execute-task`** via Skill tool:
+5. **Invoke `/workflow:execute-task`** via Skill tool:
 
    ```
    /execute-task {child_title} | {enriched_task_text} | {spec_path} | {prd_path}
@@ -156,10 +156,10 @@ After all children complete:
 
 ## Important Rules
 
-- **Always invoke `/execute-task` for each child.** Never implement directly — that bypasses the 3-step enforcement.
+- **Always invoke `/workflow:execute-task` for each child.** Never implement directly — that bypasses the 3-step enforcement.
 - **Respect dependency order.** Do not execute a blocked child. Wait for its dependencies to complete first.
 - **Skip done children.** Only execute `todo` or `in_progress` children.
 - **Enrich task text.** Read the spec sections referenced in each child's description and inline them so the subagent has full context.
 - **Halt on BLOCKED.** Do not skip blocked children automatically — always consult the user.
-- **Never mark the parent done.** Only mark children done after `/execute-task` completes successfully.
+- **Never mark the parent done.** Only mark children done after `/workflow:execute-task` completes successfully.
 - **Use `session attach` before each child.** This gives baragi proper session tracking per work item.
