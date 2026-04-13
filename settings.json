@@ -33,15 +33,23 @@
       "Bash(gh issue view *)",
       "Read(~/.claude/skills/**)",
       "Read(~/.claude/plugins/**)",
-      "mcp__pencil"
+      "mcp__pencil",
+      "Bash(xcodebuild test:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcrun swiftc -typecheck:*)",
+      "Bash(zig build:*)",
+      "Bash(xcodebuild build -scheme aterm:*)",
+      "Bash(xcodebuild -project aterm.xcodeproj:*)",
+      "Bash(xcodebuild -project */aterm/aterm.xcodeproj *)",
+      "Read(aterm/Vendor*)",
+      "Read(.ghostty-src/**)",
+      "Bash(scripts/build.sh *)"
     ],
     "deny": [
       "Bash(git -C:*)"
     ],
-    "ask": [
-      "Bash(rm:*)"
-    ],
-    "defaultMode": "default"
+    "ask": [],
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "SessionStart": [
