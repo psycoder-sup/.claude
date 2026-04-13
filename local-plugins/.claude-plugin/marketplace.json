@@ -1,0 +1,19 @@
+{
+  "name": "local",
+  "owner": {
+    "name": "sanguk"
+  },
+  "metadata": {
+    "description": "Locally-developed plugins for personal use",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "workflow",
+      "source": "./workflow",
+      "description": "End-to-end feature pipeline: PRD -> SPEC -> execute with TDD gates. Bundles create-prd, create-spec, spec-to-work, execute-work-orchestration, execute-task, polish, and wrap skills along with cto, devils-advocate, spec-reviewer, and feature-planner agents.",
+      "version": "1.0.0",
+      "strict": true
+    }
+  ]
+}

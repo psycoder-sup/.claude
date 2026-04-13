@@ -1,0 +1,9 @@
+{
+  "name": "workflow",
+  "version": "1.0.0",
+  "description": "End-to-end feature pipeline: PRD -> SPEC -> execute with TDD gates. Bundles create-prd, create-spec, spec-to-work, execute-work-orchestration, execute-task, polish, and wrap skills along with cto, devils-advocate, spec-reviewer, and feature-planner agents.",
+  "author": {
+    "name": "sanguk"
+  },
+  "keywords": ["workflow", "prd", "spec", "tdd", "pipeline"]
+}

@@ -24,7 +24,7 @@ When assigned a **parent work** (a work with children):
 1. Start session with the parent work ID
 2. Work through child works sequentially, updating each to `done` (with summary) as completed
 3. Track child work status throughout the session
-4. `/wrap` validates all children are done before marking the parent done
+4. `/workflow:wrap` validates all children are done before marking the parent done
 
 ## Planning
 - Non-trivial tasks should always start with a plan before implementing. Use the built-in plan agent (`EnterPlanMode`) to design the approach and get user approval first.
