@@ -136,6 +136,14 @@
     "clangd-lsp@claude-plugins-official": true,
     "workflow@local": true
   },
+  "extraKnownMarketplaces": {
+    "local": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/psycoder/.claude/local-plugins"
+      }
+    }
+  },
   "spinnerVerbs": {
     "mode": "replace",
     "verbs": [
@@ -148,13 +156,5 @@
       "Serving"
     ]
   },
-  "effortLevel": "high",
-  "extraKnownMarketplaces": {
-    "local": {
-      "source": {
-        "source": "directory",
-        "path": "/Users/sanguk/.claude/local-plugins"
-      }
-    }
-  }
+  "effortLevel": "high"
 }
