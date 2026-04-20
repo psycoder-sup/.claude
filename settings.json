@@ -7,7 +7,6 @@
     "allow": [
       "WebFetch",
       "WebSearch",
-
       "Bash(ls:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
@@ -15,21 +14,17 @@
       "Bash(sed:*)",
       "Bash(wc:*)",
       "Bash(curl:*)",
-
       "Bash(git:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr create:*)",
       "Bash(gh pr edit:*)",
       "Bash(gh issue view *)",
-
       "Bash(xcodegen:*)",
       "Bash(xcrun swiftc -typecheck:*)",
       "Bash(zig build:*)",
-
       "Read(~/.claude/skills/**)",
       "Read(~/.claude/plugins/**)",
-
       "Skill(git-skill)",
       "Skill(workflow:polish)",
       "Skill(workflow:wrap)",
@@ -38,7 +33,6 @@
       "Skill(workflow:spec-to-work)",
       "Skill(workflow:execute-task)",
       "Skill(workflow:execute-work-orchestration)",
-
       "mcp__pencil",
       "mcp__context7__*",
       "mcp__plugin_context7_context7__*",
@@ -130,13 +124,20 @@
     "context7@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
-    "workflow@local": true
+    "workflow@local": true,
+    "vercel@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "local": {
       "source": {
         "source": "directory",
         "path": "~/.claude/local-plugins"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
       }
     }
   },
