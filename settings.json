@@ -155,5 +155,8 @@
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "editorMode": "vim",
+  "preferredNotifChannel": "notifications_disabled",
+  "teammateMode": "in-process"
 }
