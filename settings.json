@@ -158,5 +158,6 @@
   "skipAutoPermissionPrompt": true,
   "editorMode": "vim",
   "preferredNotifChannel": "notifications_disabled",
+  "autoCompactEnabled": false,
   "teammateMode": "in-process"
 }
