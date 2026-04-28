@@ -1,99 +1,74 @@
 # PRD Template
 
-Use this structure when writing a PRD. Fill all 11 sections. Be specific and testable in functional requirements. Do not include technical implementation details (schemas, API design, code).
+Use this structure when writing a PRD. Be specific and testable in functional requirements. Do not include technical implementation details (schemas, API design, code) — those belong in the plan.
 
 ```markdown
-# PRD: [Feature Name]
+# PRD: <feature>
 
-**Author:** [Author name or team name]
-**Date:** [Today's date in YYYY-MM-DD]
-**Version:** 1.0
-**Status:** Draft
+**Date:** YYYY-MM-DD
+**Status:** Draft | Approved | Shipped
 
 ---
 
-## 1. Overview
-[What this feature is and why we're building it.]
+## 1. Why
+One paragraph. The user pain point + the business reason. If you can't write
+this without filler, the feature isn't ready.
 
-## 2. Problem Statement
-**User Pain Point:** [Frustration or unmet need. Back with data if available.]
-**Current Workaround:** [How users solve this today.]
-**Business Opportunity:** [Why this matters for growth, retention, or engagement.]
+## 2. Goals & Non-Goals
+**Goals**
+- Specific, measurable where possible. ≤4 bullets.
 
-## 3. Goals & Non-Goals
-**Goals:** [Specific, measurable where possible]
-**Non-Goals:** [What this explicitly will NOT do in v1]
+**Non-Goals**
+- What this explicitly will NOT do in v1. The boundary that prevents scope
+  creep. ≥2 bullets (if you can't think of any, you haven't bounded scope).
 
-## 4. User Stories
-| # | As a... | I want to... | So that... |
-|---|---------|--------------|------------|
-| 1 | [user type] | [action] | [value/outcome] |
+## 3. User Stories
+1. As a <user>, I want to <action> so that <outcome>.
+2. ...
 
-## 5. Functional Requirements
-[Numbered, testable requirements.]
-**FR-01:** [Requirement]
-**FR-02:** [Requirement]
+Skip if there's only one obvious user type and the goal already implies the
+action — don't pad.
 
-## 6. UX & Design
-### User Flow
-```
-User Flow: [Feature Name]
+## 4. Functional Requirements
+Numbered, testable, no "should/might/could". Each FR maps to ≥1 test later.
 
-Precondition: [Starting state]
+- **FR-01:** <requirement>
+- **FR-02:** <requirement>
 
-Happy Path:
-1. [Screen/State] -> User does [action]
-2. [Screen/State] -> System responds with [behavior]
-...
-N. [End state]
+Edge cases as their own FRs:
+- **FR-0X:** When <condition>, system <behavior>.
 
-Alternate Flows:
-- [Trigger] -> [Diverging path]
+## 5. UX & Flow
+**Happy path:**
+1. <screen> → user <action>
+2. <screen> → system <response>
 
-Error States:
-- [Error condition] -> [What user sees]
+**Alternate / error / empty / loading states:**
+- Empty: <what user sees>
+- Error: <what user sees>
+- Loading: <what user sees>
 
-Empty States:
-- [When content is empty] -> [What user sees]
+**Mockups:** <figma link or "n/a — derives from existing components">
 
-Loading States:
-- [During async operation] -> [What user sees]
-```
+## 6. Permissions, Privacy, Analytics  *(omit any that don't apply)*
+**Permissions:** <what's needed, when prompted>
+**Data:** <what's collected / stored / shared>
+**Events:**
+| Event | Trigger | Parameters |
+|-------|---------|------------|
 
-### Wireframes / Mockups
-[Figma links or written descriptions]
+**Success metric:** <metric : target by timeframe>
 
-### Empty States / Error States / Loading States
-[What the user sees in each]
+## 7. Release
+- Feature flag: <yes/no, name>
+- Rollout: <staged segments, or "ship to all">
+- Update required: <OTA / force update / n/a>
 
-### Platform-Specific Behavior
-| Behavior | iOS | Android |
-|----------|-----|---------|
+## 8. Open Questions
+- [ ] <question>
+- [ ] <question>
 
-## 7. Permissions & Privacy
-**Device Permissions:** [What's needed and when]
-**Data Collected / Stored / Shared:** [What user data this creates or uses]
-**Compliance:** [GDPR, COPPA, FERPA, etc.]
-
-## 8. Analytics & Instrumentation
-**Events to Log:**
-| Event Name | Trigger | Parameters |
-|------------|---------|------------|
-
-**Success Metrics & Targets:** [Metric: Target by timeframe]
-**A/B Test Design:** [If applicable]
-
-## 9. Release Strategy
-**Feature Flag / Gradual Rollout:** [How it rolls out]
-**Target User Segment:** [Who gets access first]
-**Update Requirements:** [Force update? OTA sufficient?]
-
-## 10. Open Questions
-| # | Question | Owner | Due Date |
-|---|----------|-------|----------|
-
-## 11. Appendix
-[Research, competitive analysis, links]
+If empty, write "None known" — empty section is suspicious.
 ```
 
-**Filename convention:** `docs/feature/{feature-name}/{feature-name}-prd.md` (kebab-case).
+**Filename convention:** `docs/feature/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name; date is the day the PRD was authored).

@@ -1,11 +1,11 @@
 # PRD Drafting Guide
 
-Behavioral guidance when drafting a PRD directly (not via the `feature-planner` subagent).
+Behavioral guidance when drafting a PRD directly in the main session.
 
 ## Scope
 
 - Product planning only — user problems, user flows, functional requirements, UX, analytics, and release strategy.
-- Technical implementation (architecture, database schema, API design, code patterns) is **out of scope** — that belongs in the SPEC.
+- Technical implementation (architecture, database schema, API design, code patterns) is **out of scope** — that belongs in the plan (`/create-plan`).
 - If a concern is half-product, half-technical (e.g., "we need offline support"), phrase it as the *user requirement* ("users can view X while offline"), not the technical mechanism.
 
 ## Clarification Dialog

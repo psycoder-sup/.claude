@@ -2,13 +2,15 @@
 
 Use this template when dispatching an implementer subagent via the Task tool.
 
-**Placeholders:** `{TASK_TITLE}`, `{TASK_TEXT}`, `{SPEC_PATH}`, `{PRD_PATH}`, `{WORKING_DIR}`, `{PREVIOUS_ISSUES}`
+**Placeholders:** `{TASK_TITLE}`, `{TASK_TEXT}`, `{PLAN_PATH}`, `{PRD_PATH}`, `{WORKING_DIR}`, `{PREVIOUS_ISSUES}`, `{INLINE_PLAN_APPROACH}`, `{INLINE_PLAN_TYPES}`, `{INLINE_PLAN_TESTS}`, `{INLINE_PRD_FRS}`
+
+**Inlining policy:** the orchestrator (`/execute-task` Step 0) reads the plan and PRD once and substitutes the relevant section content directly into the prompt below. The subagent does **not** need to Read the plan or PRD — everything it needs is inlined. The file paths are kept only as a fallback for deep-reads (e.g., the subagent wants to verify a §2 file-by-file table entry).
 
 ```
-Task tool (general-purpose):
+Task tool (general-purpose, model = current_tier from /execute-task):
   description: "Implement: {TASK_TITLE}"
   prompt: |
-    You are implementing a single task from a technical specification using TDD.
+    You are implementing a single task from a feature plan using TDD.
 
     ## Task
 
@@ -16,19 +18,36 @@ Task tool (general-purpose):
 
     {TASK_TEXT}
 
-    ## Source Documents
+    ## Plan Context (inlined — do not re-read)
 
-    - **SPEC:** {SPEC_PATH}
+    ### Plan §1: Approach
+    {INLINE_PLAN_APPROACH}
+
+    ### Plan §3: Types & Interfaces (use verbatim)
+    {INLINE_PLAN_TYPES}
+
+    ### Plan §4: Test plan entries for this task
+    {INLINE_PLAN_TESTS}
+
+    ## PRD Functional Requirements (inlined)
+    {INLINE_PRD_FRS}
+
+    ## Source Files (fallback only — content above is the source of truth)
+
+    - **Plan:** {PLAN_PATH}
     - **PRD:** {PRD_PATH}
 
-    Read the referenced SPEC sections and PRD requirements for full context on
-    architecture, patterns, and constraints relevant to this task.
+    Read these files only if you need to check something not inlined above
+    (e.g., a plan §2 file table entry, or PRD §5 user flow detail). Default to
+    the inlined content.
 
     ## Previous Issues
 
     {PREVIOUS_ISSUES}
 
     If previous issues are listed above, address ALL of them before proceeding.
+    These came from a prior validation pass that found problems with the previous
+    attempt — do not repeat the same mistakes.
 
     ## Before You Begin
 
@@ -46,12 +65,16 @@ Task tool (general-purpose):
 
     ### 1. Explore Context
 
-    Read the relevant SPEC sections and PRD requirements. Pay special attention to:
-    - **SPEC Section 7 (Type Definitions)** — use these types verbatim; do not invent new ones unless the spec is wrong.
-    - **SPEC Section 13.5 (Test Skeletons)** — these are your starting failing tests.
+    The plan and PRD content you need is **already inlined above**. Re-read the
+    inlined Plan §1 (Approach), §3 (Types — use verbatim), §4 (Test entries for
+    this task), and the PRD FRs.
 
-    Explore the codebase to understand existing patterns, conventions, and file structure.
-    Identify the test framework and existing test patterns.
+    Then explore the **codebase** to understand existing patterns, conventions,
+    and file structure. Identify the test framework and existing test patterns
+    in the project.
+
+    Only Read the plan or PRD files (paths above) if you need a section that
+    wasn't inlined.
 
     ### 2. Write Tests First (TDD) — MANDATORY TWO-COMMIT RHYTHM
 
@@ -59,17 +82,17 @@ Task tool (general-purpose):
 
     **Step 2a — Write the failing tests:**
 
-    Copy the test skeletons from SPEC Section 13.5 for the acceptance criteria in this task.
-    Flesh out skeleton bodies (imports, setup, assertions) enough to make them real, executable,
-    failing tests. If Section 13.5 is missing a skeleton for an acceptance criterion, write one.
+    Write tests for the acceptance criteria ("done when" + relevant FRs from the PRD)
+    in this task. Tests should cover the behavior the task is supposed to add.
 
     Do NOT invent tests beyond what the acceptance criteria require. Do NOT write placeholder
     `expect(true).toBe(true)` — every assertion must exercise real behavior.
 
     **Step 2b — Run the failing tests:**
 
-    Use the `test-runner-slim` agent via Task tool. Confirm the tests fail for the EXPECTED
-    reason (function not defined, type not found, etc. — not a syntax error or setup bug).
+    Run the test suite directly via Bash (the project's test command, e.g. `npm test`,
+    `pytest`, `go test`). Confirm the tests fail for the EXPECTED reason (function not
+    defined, type not found, etc. — not a syntax error or setup bug).
 
     **If a test passes immediately, you are testing existing behavior, not new behavior.**
     Delete it and write a test that actually exercises your new code.
@@ -91,12 +114,12 @@ Task tool (general-purpose):
 
     **Step 3a — Write the minimum code to make all tests pass:**
 
-    - Use the types from SPEC Section 7 verbatim.
+    - Use the types from Plan §3 verbatim.
     - Follow existing codebase patterns and conventions.
     - Do not over-engineer or add features not in the task scope.
     - If a file grows beyond the task's intent, stop and report DONE_WITH_CONCERNS.
 
-    **Step 3b — Run all tests** (full suite via test-runner-slim). Ensure no regressions.
+    **Step 3b — Run all tests** (full suite via Bash). Ensure no regressions.
 
     **Step 3c — Commit the implementation (second commit):**
 
@@ -123,9 +146,9 @@ Task tool (general-purpose):
     It is always OK to stop and escalate. Bad work is worse than no work.
 
     **STOP and escalate when:**
-    - The task requires architectural decisions not covered by the spec
+    - The task requires architectural decisions not covered by the plan
     - You need to understand code beyond what was provided
-    - The task involves restructuring code the spec didn't anticipate
+    - The task involves restructuring code the plan didn't anticipate
     - You feel uncertain about whether your approach is correct
 
     Report with status BLOCKED. Describe what you're stuck on and what you tried.
