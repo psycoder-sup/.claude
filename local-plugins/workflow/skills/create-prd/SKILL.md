@@ -67,7 +67,7 @@ Write the PRD directly with `Write`. Do NOT dispatch a subagent.
 1. Read `references/prd-template.md` for the section structure.
 2. Read `references/prd-drafting-guide.md` for behavioral rules (no impl details, testable FRs, etc.).
 3. Compose the PRD based on the user's description + Phase 1 answers + project context.
-4. Save to `docs/feature/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name; use today's date for `YYYY-MM-DD` — run `date +%Y-%m-%d` via Bash if unsure).
+4. Save to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name; use today's date for `YYYY-MM-DD` — run `date +%Y-%m-%d` via Bash if unsure). Create the `docs/feature/<feature-name>/` directory if it doesn't exist.
 
 If the user's project convention for PRD location differs from this default (check CLAUDE.md or existing PRDs), use the project convention.
 
@@ -154,7 +154,7 @@ For "edit the PRD", "update the PRD for X", "revise the PRD":
 - **Always use `AskUserQuestion` to present choices** — do not decide on the user's behalf.
 - **Batch Phase 4 into one AskUserQuestion call** — do not ask per-issue.
 - **Show progress** — after the critique, briefly note how many Blocker/Major issues were found before opening the AskUserQuestion.
-- **Use kebab-case** for the PRD filename: `docs/feature/YYYY-MM-DD-<feature-name>-prd.md`.
+- **Use kebab-case** for both the feature directory and the PRD filename: `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md`.
 
 ## Additional Resources
 

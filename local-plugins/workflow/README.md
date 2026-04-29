@@ -26,12 +26,12 @@ Final stage in /execute-plan:
 ## Quick start
 
 1. **Draft a PRD:** `/workflow:create-prd Add bookmarks feature`
-   Saves to `docs/feature/YYYY-MM-DD-bookmarks-prd.md`.
+   Saves to `docs/feature/bookmarks/YYYY-MM-DD-bookmarks-prd.md`.
 
-2. **Create the plan:** `/workflow:create-plan docs/feature/YYYY-MM-DD-bookmarks-prd.md`
-   Saves to `docs/feature/YYYY-MM-DD-bookmarks-plan.md`. Plan §5 lists tasks tagged `[model: haiku|sonnet|opus]`.
+2. **Create the plan:** `/workflow:create-plan docs/feature/bookmarks/YYYY-MM-DD-bookmarks-prd.md`
+   Saves to `docs/feature/bookmarks/YYYY-MM-DD-bookmarks-plan.md`. Plan §5 lists tasks tagged `[model: haiku|sonnet|opus]`.
 
-3. **Execute:** `/workflow:execute-plan docs/feature/YYYY-MM-DD-bookmarks-plan.md`
+3. **Execute:** `/workflow:execute-plan docs/feature/bookmarks/YYYY-MM-DD-bookmarks-plan.md`
    Runs each task in dependency order, validates, polishes at the end, prints a summary.
 
 To re-run a single task: `/workflow:execute-task` with pipe-delimited arguments.
@@ -46,7 +46,7 @@ Draft a Product Requirements Document directly in the main session.
 - Drafts the PRD inline using `references/prd-template.md` (8-section lean structure)
 - **Single optional critic pass** via `devils-advocate` — no auto re-iteration
 - All Required Fixes presented in **one batched** `AskUserQuestion` (multi-select)
-- File: `docs/feature/YYYY-MM-DD-<feature>-prd.md`
+- File: `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md`
 
 ### `/workflow:create-plan`
 
@@ -56,7 +56,7 @@ Translate a PRD into an implementation plan.
 - Drafts the plan inline using `references/plan-template.md` (6 sections: Approach, File-by-file, Types, Test Plan, Tasks, Risks)
 - Each task in §5 is tagged `[model: haiku|sonnet|opus]` based on complexity heuristic
 - Optional single critic pass via `devils-advocate`
-- File: `docs/feature/YYYY-MM-DD-<feature>-plan.md`
+- File: `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`
 
 ### `/workflow:execute-task`
 
@@ -152,15 +152,16 @@ Ordering is verified by `/execute-task` Step 3. The two commits are never squash
 
 ### File naming convention
 
-Flat directory under `docs/feature/`:
+Per-feature directory under `docs/feature/<feature-name>/`:
 
 ```
 docs/feature/
-  2026-04-28-bookmarks-prd.md
-  2026-04-29-bookmarks-plan.md
+  bookmarks/
+    2026-04-28-bookmarks-prd.md
+    2026-04-29-bookmarks-plan.md
 ```
 
-Date prefix is the authoring date. PRD ↔ plan pairs share the `<feature-name>` between the date and the suffix.
+Each feature gets its own directory keyed by `<feature-name>` (kebab-case). Date prefix on each file is the authoring date. PRD ↔ plan pairs live side-by-side in the feature directory and share the `<feature-name>` between the date and the suffix.
 
 ## File layout
 

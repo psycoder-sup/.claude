@@ -7,7 +7,7 @@ Use this structure when writing an implementation plan. The plan is the bridge b
 
 **Date:** YYYY-MM-DD
 **Status:** Draft | Approved | Executed
-**Based on:** docs/feature/YYYY-MM-DD-<feature>-prd.md
+**Based on:** docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md
 
 ---
 
@@ -109,4 +109,4 @@ If unsure → sonnet.
 If empty, write "None known" — empty section is suspicious.
 ```
 
-**Filename convention:** `docs/feature/YYYY-MM-DD-<feature-name>-plan.md` (kebab-case feature name; date is the day the plan was authored — does not need to match the PRD's date).
+**Filename convention:** `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md` (kebab-case feature name for both the directory and the file; date is the day the plan was authored — does not need to match the PRD's date). The plan lives in the same `docs/feature/<feature-name>/` directory as the PRD.

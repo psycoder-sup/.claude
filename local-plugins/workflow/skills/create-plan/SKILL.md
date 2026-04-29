@@ -48,9 +48,9 @@ Phase 5: Confirm (approve / walk through / request edits)
 
 ### Phase 1: Locate PRD and Read Context
 
-1. If the user provided a PRD path, use it. Otherwise search `docs/feature/*-prd.md` via Glob.
-2. If multiple PRDs exist, ask which one via `AskUserQuestion`. Show date prefix + feature name to help the user identify.
-3. Read CLAUDE.md, the PRD, and any existing plan for the same feature (`docs/feature/*-<feature-name>-plan.md`).
+1. If the user provided a PRD path, use it. Otherwise search `docs/feature/**/*-prd.md` via Glob.
+2. If multiple PRDs exist, ask which one via `AskUserQuestion`. Show feature directory + date prefix + feature name to help the user identify.
+3. Read CLAUDE.md, the PRD, and any existing plan for the same feature (`docs/feature/<feature-name>/*-<feature-name>-plan.md`).
 4. If no PRD exists, ask via `AskUserQuestion` whether to create one first or proceed with a description.
 
 ### Phase 2: Explore Codebase
@@ -68,7 +68,7 @@ You do this directly — do not dispatch a subagent for exploration.
 
 Read `references/plan-template.md` for the structure.
 
-Write the plan with `Write` to `docs/feature/YYYY-MM-DD-<feature-name>-plan.md` (or the project's convention if different — check CLAUDE.md or existing plans). Use today's date for `YYYY-MM-DD` (run `date +%Y-%m-%d` via Bash if unsure). The feature name should match the companion PRD's feature name (the part between the date and `-prd`).
+Write the plan with `Write` to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md` (or the project's convention if different — check CLAUDE.md or existing plans). Use today's date for `YYYY-MM-DD` (run `date +%Y-%m-%d` via Bash if unsure). The feature name (and the directory it lives in) should match the companion PRD's feature name (the part between the date and `-prd`). The PRD's feature directory is reused — do not create a sibling directory.
 
 Fill all 6 sections:
 - §1 Approach — prose, 10-20 lines
@@ -159,7 +159,7 @@ Apply edits with `Edit`. Don't auto-trigger another critic pass.
 
 For "edit the plan", "update the plan for X":
 
-1. Identify the plan file (search `docs/feature/*-plan.md` if not specified, ask which one if multiple).
+1. Identify the plan file (search `docs/feature/**/*-plan.md` if not specified, ask which one if multiple).
 2. Apply edits directly with `Edit`.
 3. Optionally offer a critic pass via `devils-advocate`. Default: don't run it unless the user asks.
 
@@ -170,8 +170,8 @@ For "edit the plan", "update the plan for X":
 - **Tag every task in §5 with `[model: ...]`.** This is what `/execute-plan` uses to pick the implementer model. If unsure, tag `sonnet`.
 - **Always use `AskUserQuestion` to present choices** — do not decide on the user's behalf.
 - **Batch Phase 4 user decisions into one AskUserQuestion** — never one question per issue.
-- **Use kebab-case** for the plan filename: `docs/feature/YYYY-MM-DD-<feature-name>-plan.md`. Use today's date.
-- **Plan and PRD share `docs/feature/`** as a flat directory — the PRD/plan pair is identified by matching `<feature-name>` (the part between the date prefix and the `-prd.md` / `-plan.md` suffix).
+- **Use kebab-case** for both the feature directory and the plan filename: `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`. Use today's date.
+- **Plan and PRD share the feature directory `docs/feature/<feature-name>/`** — the PRD/plan pair is identified by living in the same `<feature-name>` directory and by matching `<feature-name>` between the date prefix and the `-prd.md` / `-plan.md` suffix.
 
 ## Additional Resources
 

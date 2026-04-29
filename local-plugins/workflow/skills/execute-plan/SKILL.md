@@ -23,7 +23,7 @@ $ARGUMENTS
 
 Parse the first argument as the path to the plan document.
 
-If no argument is provided, search for plan files using `Glob("docs/feature/*-plan.md")` and ask the user to pick one via `AskUserQuestion`.
+If no argument is provided, search for plan files using `Glob("docs/feature/**/*-plan.md")` and ask the user to pick one via `AskUserQuestion`.
 
 ## Process Overview
 
@@ -60,7 +60,7 @@ Phase 5: Summary report
 
 1. **Read the plan file** at the provided path. Hold the full content in orchestrator memory — you'll reuse it in Phase 3 for the stage-end validator. `/execute-task` will read it again per-task (cheap; cache hits).
 
-2. **Locate the companion PRD.** Check the plan's `**Based on:**` header. If absent, derive `<feature-name>` from the plan filename (strip the `YYYY-MM-DD-` prefix and `-plan.md` suffix) and Glob `docs/feature/*-<feature-name>-prd.md`. If multiple matches (multiple PRD versions), pick the most recent by date prefix or ask the user. If no PRD exists, set PRD path to `"none"`. Read the PRD if it exists.
+2. **Locate the companion PRD.** Check the plan's `**Based on:**` header. If absent, derive `<feature-name>` from the plan filename (strip the `YYYY-MM-DD-` prefix and `-plan.md` suffix) and look in the plan's own directory first via `Glob("docs/feature/<feature-name>/*-<feature-name>-prd.md")`; fall back to `Glob("docs/feature/**/*-<feature-name>-prd.md")` if not found there. If multiple matches (multiple PRD versions), pick the most recent by date prefix or ask the user. If no PRD exists, set PRD path to `"none"`. Read the PRD if it exists.
 
 3. **Capture starting git ref.** Run `git rev-parse HEAD` and save as `START_REF`. This is used for the post-run diff in Phase 4 and for whole-plan regression detection in Phase 3.
 

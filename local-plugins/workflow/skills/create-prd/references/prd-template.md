@@ -71,4 +71,4 @@ Edge cases as their own FRs:
 If empty, write "None known" — empty section is suspicious.
 ```
 
-**Filename convention:** `docs/feature/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name; date is the day the PRD was authored).
+**Filename convention:** `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name for both the directory and the file; date is the day the PRD was authored). The companion plan lives in the same `docs/feature/<feature-name>/` directory.
