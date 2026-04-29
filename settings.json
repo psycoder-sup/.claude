@@ -40,9 +40,7 @@
       "mcp__plugin_slack_slack__*",
       "mcp__claude_ai_Figma__*"
     ],
-    "deny": [
-      "Bash(git -C:*)"
-    ],
+    "deny": [],
     "ask": [],
     "defaultMode": "auto"
   },
@@ -125,7 +123,8 @@
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
     "workflow@local": true,
-    "vercel@claude-plugins-official": true
+    "vercel@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "local": {
@@ -155,9 +154,9 @@
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
-  "skipAutoPermissionPrompt": true,
   "editorMode": "vim",
   "preferredNotifChannel": "notifications_disabled",
   "autoCompactEnabled": false,
-  "teammateMode": "in-process"
+  "teammateMode": "in-process",
+  "skipAutoPermissionPrompt": true
 }
