@@ -69,7 +69,7 @@ Write the PRD directly with `Write`. Do NOT dispatch a subagent.
 3. Compose the PRD based on the user's description + Phase 1 answers + project context.
 4. Save to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md` (kebab-case feature name; use today's date for `YYYY-MM-DD` — run `date +%Y-%m-%d` via Bash if unsure). Create the `docs/feature/<feature-name>/` directory if it doesn't exist.
 
-If the user's project convention for PRD location differs from this default (check CLAUDE.md or existing PRDs), use the project convention.
+**This path convention is mandatory.** Do not defer to project-specific conventions, existing PRDs in other locations, or `CLAUDE.md` overrides — always write to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-prd.md`.
 
 ### Phase 3: Critique (Single Pass)
 

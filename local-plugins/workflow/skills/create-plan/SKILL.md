@@ -68,7 +68,9 @@ You do this directly — do not dispatch a subagent for exploration.
 
 Read `references/plan-template.md` for the structure.
 
-Write the plan with `Write` to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md` (or the project's convention if different — check CLAUDE.md or existing plans). Use today's date for `YYYY-MM-DD` (run `date +%Y-%m-%d` via Bash if unsure). The feature name (and the directory it lives in) should match the companion PRD's feature name (the part between the date and `-prd`). The PRD's feature directory is reused — do not create a sibling directory.
+Write the plan with `Write` to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`. Use today's date for `YYYY-MM-DD` (run `date +%Y-%m-%d` via Bash if unsure). The feature name (and the directory it lives in) must match the companion PRD's feature name (the part between the date and `-prd`). The PRD's feature directory is reused — do not create a sibling directory.
+
+**This path convention is mandatory.** Do not defer to project-specific conventions, existing plans in other locations, or `CLAUDE.md` overrides — always write to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`.
 
 Fill all 6 sections:
 - §1 Approach — prose, 10-20 lines
