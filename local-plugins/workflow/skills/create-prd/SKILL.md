@@ -1,6 +1,7 @@
 ---
 name: create-prd
-description: This skill should be used when the user asks to "create a PRD", "write a PRD", "draft a PRD for [feature]", "make a PRD", "I need a PRD", "PRD for [feature]", "edit the PRD", "update the PRD", "revise the PRD", or wants a product requirements document for a new feature or to modify an existing one. Drafts a PRD directly, runs a single critic pass via the devils-advocate subagent, then lets the user direct revisions in one batched interaction.
+description: Drafts a PRD for a feature, runs one critic pass via the devils-advocate subagent, then lets the user direct revisions in one batched interaction. Invoked only via the explicit `/create-prd` slash command.
+disable-model-invocation: true
 ---
 
 # Create PRD

@@ -1,6 +1,7 @@
 ---
 name: create-plan
-description: This skill should be used when the user asks to "create a plan", "write a plan", "draft a plan for [feature]", "implementation plan for [feature]", "turn this PRD into a plan", "edit the plan", or wants a technical implementation plan that bridges a PRD to code. Drafts a plan directly (approach, file changes, types, test plan, tagged task list), runs a single optional critic pass via devils-advocate, batches user decisions in one AskUserQuestion.
+description: Drafts a technical implementation plan that bridges a PRD to code (approach, file changes, types, test plan, tagged task list), runs one optional critic pass via devils-advocate, batches user decisions in one AskUserQuestion. Invoked only via the explicit `/create-plan` slash command.
+disable-model-invocation: true
 ---
 
 # Create Plan
