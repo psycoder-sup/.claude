@@ -510,7 +510,8 @@ class TestCli(unittest.TestCase):
     def test_main_exits_nonzero_if_markdown_file_missing(self):
         with tempfile.TemporaryDirectory() as d:
             target = os.path.join(d, "missing.md")
-            rc = main([target])
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = main([target])
         self.assertNotEqual(rc, 0)
 
     def test_main_refuses_when_another_instance_running(self):
@@ -526,7 +527,8 @@ class TestCli(unittest.TestCase):
                 ),
             )
             with patch("server.annotate_server.probe_lock", return_value=running):
-                rc = main([target])
+                with contextlib.redirect_stderr(io.StringIO()):
+                    rc = main([target])
         self.assertNotEqual(rc, 0)
 
     def test_main_reports_stale_lock_with_manual_clear(self):
@@ -573,14 +575,15 @@ class TestPortFallback(unittest.TestCase):
             s.close()
 
     def test_port_fallback_when_default_in_use(self):
-        # Pre-occupy a port within a private range, then find a free one
-        # starting at that occupied port.
-        candidate = find_free_port(40000, 1)
+        # Bind a port via the kernel's "free port 0" assignment, then ask
+        # find_free_port to start from that bound port. It must skip past it.
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("127.0.0.1", candidate))
+        s.bind(("127.0.0.1", 0))
+        bound = s.getsockname()[1]
         try:
-            found = find_free_port(candidate, 5)
-            self.assertGreater(found, candidate)
+            found = find_free_port(bound, 50)
+            self.assertNotEqual(found, bound)
+            self.assertGreaterEqual(found, bound)
         finally:
             s.close()
 
@@ -627,6 +630,13 @@ class TestSigintSubprocess(unittest.TestCase):
                 if proc.poll() is None:
                     proc.kill()
                     proc.wait(timeout=5)
+                # Close pipes to avoid ResourceWarning in test output.
+                for stream in (proc.stdout, proc.stderr, proc.stdin):
+                    if stream is not None:
+                        try:
+                            stream.close()
+                        except Exception:
+                            pass
         finally:
             try:
                 os.unlink(target)
