@@ -88,16 +88,6 @@
             "timeout": 5000
           }
         ]
-      },
-      {
-        "matcher": "Read|Write|Edit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/validate-tmp-path.sh",
-            "timeout": 5000
-          }
-        ]
       }
     ],
     "Notification": [
@@ -118,10 +108,10 @@
   },
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": false,
     "context7@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
-    "clangd-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": false,
     "workflow@local": true,
     "vercel@claude-plugins-official": true,
     "code-review@claude-plugins-official": true

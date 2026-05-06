@@ -28,3 +28,8 @@ backups
 .credentials.json
 mcp-needs-auth-cache.json
 
+__pycache__/
+*.py[cod]
+
+.dev/tmp/
+

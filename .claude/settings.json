@@ -7,6 +7,7 @@
     ]
   },
   "enabledPlugins": {
-    "markdown-review@local": true
+    "markdown-review@local": true,
+    "frontend-design@claude-plugins-official": true
   }
 }
