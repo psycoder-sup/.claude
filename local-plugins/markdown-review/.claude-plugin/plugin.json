@@ -1,0 +1,9 @@
+{
+  "name": "markdown-review",
+  "version": "0.1.0",
+  "description": "Markdown comment review skill that opens a document in a browser for block-level commenting and writes a sidecar JSON file.",
+  "author": {
+    "name": "sanguk"
+  },
+  "keywords": ["markdown", "review", "comments", "annotation"]
+}
