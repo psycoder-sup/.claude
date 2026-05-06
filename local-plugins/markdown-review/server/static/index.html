@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>markdown review</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">markdown review</div>
+    <div id="banners" class="banners">
+      <!-- mtime-changed banner and save-failure banner are inserted here by app.js -->
+    </div>
+    <button id="done-btn" class="done-btn" type="button">Done</button>
+  </header>
+
+  <main class="layout">
+    <section id="doc" class="doc-pane" aria-label="Document">
+      <!-- block elements injected by app.js, each .block element wraps the rendered HTML -->
+    </section>
+
+    <aside id="comments" class="comments-pane" aria-label="Comments">
+      <!-- comment list, orphans, save-failure markers — injected by app.js -->
+    </aside>
+  </main>
+
+  <template id="block-template">
+    <article class="block" data-anchor="">
+      <div class="block-content"><!-- innerHTML of Block.html --></div>
+      <button class="comment-icon" type="button" aria-label="Add comment">&#x1F4AC;</button>
+    </article>
+  </template>
+
+  <template id="comment-input-template">
+    <form class="comment-input" data-anchor="">
+      <textarea class="comment-body" maxlength="2000" placeholder="Add a comment&#x2026;"></textarea>
+      <div class="comment-input-footer">
+        <span class="char-counter">0 / 2000</span>
+        <button type="submit" class="comment-submit">Add Comment</button>
+      </div>
+      <div class="comment-error" hidden></div>
+    </form>
+  </template>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
