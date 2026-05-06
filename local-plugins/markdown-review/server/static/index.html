@@ -4,48 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Markdown Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-title">
-      <span class="topbar-dot" aria-hidden="true"></span>
-      <span class="topbar-name">Markdown Review</span>
-    </div>
-    <div id="banners" class="banners">
-      <!-- mtime-changed banner and save-failure banner are inserted here by app.js -->
-    </div>
-    <button id="done-btn" class="done-btn" type="button">Done</button>
-  </header>
-
-  <main class="layout">
-    <section id="doc" class="doc-pane" aria-label="Document">
-      <!-- block elements injected by app.js, each .block element wraps the rendered HTML -->
-    </section>
-
-    <aside id="comments" class="comments-pane" aria-label="Comments">
-      <!-- comment list, orphans, save-failure markers — injected by app.js -->
-    </aside>
-  </main>
-
-  <template id="block-template">
-    <article class="block" data-anchor="">
-      <div class="block-content"><!-- innerHTML of Block.html --></div>
-      <button class="comment-icon" type="button" aria-label="Add comment"></button>
-    </article>
-  </template>
-
-  <template id="comment-input-template">
-    <form class="comment-input" data-anchor="">
-      <textarea class="comment-body" maxlength="2000" placeholder="Add a comment&#x2026;"></textarea>
-      <div class="comment-input-footer">
-        <span class="char-counter">0 / 2000</span>
-        <button type="submit" class="comment-submit">Add Comment</button>
-      </div>
-      <div class="comment-error" hidden></div>
-    </form>
-  </template>
-
+  <div id="root"><!-- populated by app.js --></div>
   <script src="/static/app.js" defer></script>
 </body>
 </html>
