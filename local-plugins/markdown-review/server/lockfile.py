@@ -64,12 +64,12 @@ def probe_lock() -> LockProbeResult:
     Does NOT auto-clear stale locks (PRD §8).
     """
     path = _resolve_lock_path()
-    if not os.path.exists(path):
-        return LockProbeResult(state=LockState.FREE, info=None)
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         info = LockInfo(**data)
+    except FileNotFoundError:
+        return LockProbeResult(state=LockState.FREE, info=None)
     except (OSError, ValueError, TypeError):
         # Unreadable or malformed lock — treat as stale with no info.
         return LockProbeResult(state=LockState.STALE, info=None)

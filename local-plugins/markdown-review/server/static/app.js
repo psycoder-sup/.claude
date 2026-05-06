@@ -1,5 +1,12 @@
 "use strict";
 
+// Hard cap on comment body length (FR-15). Mirrors Python COMMENT_BODY_MAX_CHARS.
+const MAX_BODY_CHARS = 2000;
+
+// "Hide applied" toggle for the comments pane — defaults on (plan §6).
+// Module-level rather than on STATE so we don't drift from plan §3's verbatim shape.
+let hideApplied = true;
+
 // ---- State (per Plan §3, verbatim shape) ----
 const STATE = {
   blocks: [],          // Block[] from /api/document
@@ -103,16 +110,15 @@ function openCommentInput(anchor, blockNode, existingComment) {
 
     function updateCounter() {
       const len = textarea.value.length;
-      counter.textContent = `${len} / 2000`;
-      counter.classList.toggle("over", len > 2000);
+      counter.textContent = `${len} / ${MAX_BODY_CHARS}`;
+      counter.classList.toggle("over", len > MAX_BODY_CHARS);
     }
 
     // FR-13: bare Enter inserts newline (textarea default); Cmd/Ctrl+Enter submits.
     // FR-15: live counter; enforce hard cap client-side.
     textarea.addEventListener("input", () => {
-      // FR-15 hard cap — truncate to 2000 (server enforces too)
-      if (textarea.value.length > 2000) {
-        textarea.value = textarea.value.slice(0, 2000);
+      if (textarea.value.length > MAX_BODY_CHARS) {
+        textarea.value = textarea.value.slice(0, MAX_BODY_CHARS);
       }
       STATE.draftBody = textarea.value;
       updateCounter();
@@ -201,8 +207,8 @@ async function submitDraft(form, blockNode, anchor, existingComment) {
   }
 
   // FR-15: oversize rejection (belt-and-suspenders; textarea input handler already truncates)
-  if (body.length > 2000) {
-    errorEl.textContent = `Body too long (${body.length} / 2000).`;
+  if (body.length > MAX_BODY_CHARS) {
+    errorEl.textContent = `Body too long (${body.length} / ${MAX_BODY_CHARS}).`;
     errorEl.hidden = false;
     return;
   }
@@ -242,7 +248,7 @@ async function submitDraft(form, blockNode, anchor, existingComment) {
         STATE.saveFailures.push({ commentId, message: msg });
         showBanner("save-failure", "Comment could not be saved — check disk space and permissions.");
         if (existingComment) {
-          markCommentUnsaved(existingComment.id);
+          renderComments(); // re-render to apply .unsaved styling
         }
         updateDoneButton();
       }
@@ -282,19 +288,16 @@ async function submitDraft(form, blockNode, anchor, existingComment) {
 function renderComments() {
   commentsEl.innerHTML = "";
 
-  // "Hide applied" toggle — default on
-  if (window._hideApplied === undefined) window._hideApplied = true;
-
   const toolbar = document.createElement("div");
   toolbar.className = "comments-toolbar";
   const toggle = document.createElement("label");
   toggle.style.cssText = "font-size:12px;color:#555;cursor:pointer;";
   const cb = document.createElement("input");
   cb.type = "checkbox";
-  cb.checked = window._hideApplied;
+  cb.checked = hideApplied;
   cb.style.marginRight = "4px";
   cb.addEventListener("change", () => {
-    window._hideApplied = cb.checked;
+    hideApplied = cb.checked;
     renderComments();
   });
   toggle.appendChild(cb);
@@ -303,7 +306,7 @@ function renderComments() {
   commentsEl.appendChild(toolbar);
 
   // Filter comments (respect hide-applied toggle)
-  const visibleComments = STATE.comments.filter(c => !(window._hideApplied && c.applied));
+  const visibleComments = STATE.comments.filter(c => !(hideApplied && c.applied));
 
   if (visibleComments.length === 0) {
     const empty = document.createElement("div");
@@ -426,11 +429,6 @@ async function deleteComment(id) {
   updateDoneButton();
 }
 
-function markCommentUnsaved(id) {
-  // Re-render the comments pane to apply the .unsaved class
-  renderComments();
-}
-
 // FR-28: orphaned comments section
 function renderOrphansSection(orphans) {
   const section = document.createElement("section");
@@ -524,6 +522,15 @@ function updateDoneButton() {
   doneBtn.textContent = blocked ? "Saving…" : "Done";
 }
 
+function showServerStoppedPage(includeDetail) {
+  const detail = includeDetail
+    ? "<p>You can close this tab. Returning to the terminal will show the next-turn prompt.</p>"
+    : "";
+  document.body.innerHTML =
+    '<div style="padding:32px;font:16px/1.5 -apple-system,sans-serif;">' +
+    "<h1>Server stopped</h1>" + detail + "</div>";
+}
+
 async function clickDone() {
   doneBtn.disabled = true;
   doneBtn.classList.add("is-saving");
@@ -535,12 +542,7 @@ async function clickDone() {
       if (payload && payload.orphans && payload.orphans.length > 0) {
         renderOrphansSection(payload.orphans);
       }
-      // Replace page — server has shut down
-      document.body.innerHTML =
-        '<div style="padding:32px;font:16px/1.5 -apple-system,sans-serif;">' +
-        "<h1>Server stopped</h1>" +
-        "<p>You can close this tab. Returning to the terminal will show the next-turn prompt.</p>" +
-        "</div>";
+      showServerStoppedPage(true);
     } else {
       const msg = (payload && payload.error) || "server error";
       showBanner("save-failure", "Done could not complete: " + msg);
@@ -548,10 +550,7 @@ async function clickDone() {
     }
   } catch (_) {
     // Connection reset is expected when server shuts down — treat as success.
-    document.body.innerHTML =
-      '<div style="padding:32px;font:16px/1.5 -apple-system,sans-serif;">' +
-      "<h1>Server stopped</h1>" +
-      "</div>";
+    showServerStoppedPage(false);
   }
 }
 

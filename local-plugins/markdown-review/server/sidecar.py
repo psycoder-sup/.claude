@@ -91,13 +91,12 @@ def read_sidecar(path: str) -> tuple[Sidecar, list[str]]:
     warnings: list[str] = []
     source_file = _infer_source_file(path)
 
-    # --- file does not exist ---
-    if not os.path.exists(path):
+    # --- read raw bytes (or treat as missing) ---
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = f.read()
+    except FileNotFoundError:
         return Sidecar(version=SIDECAR_VERSION, source_file=source_file, comments=[]), warnings
-
-    # --- read raw bytes ---
-    with open(path, encoding="utf-8") as f:
-        raw = f.read()
 
     # --- parse JSON ---
     try:

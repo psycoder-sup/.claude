@@ -114,6 +114,17 @@ class ResolveResult:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# Map mistune token types to our BlockKind.
+_KIND_MAP: Dict[str, BlockKind] = {
+    "heading": "heading",
+    "paragraph": "paragraph",
+    "block_code": "code_block",
+    "table": "table",
+    "block_quote": "blockquote",
+    "thematic_break": "thematic_break",
+}
+
+
 def _text_hash(plain_text: str) -> str:
     """sha256(plain_text)[:12]."""
     return hashlib.sha256(plain_text.encode("utf-8")).hexdigest()[:12]
@@ -142,15 +153,12 @@ def _extract_plain_text(token: Dict[str, Any], *, list_item_shallow: bool = Fals
     # Leaf: raw/text value
     tok_type = token.get("type", "")
 
-    if "raw" in token and tok_type not in ("block_code", "block_html"):
-        # inline leaf nodes store their text in "raw"
+    if tok_type == "block_html":
+        return ""
+
+    if "raw" in token:
+        # block_code, codespan, and inline leaf nodes all store text in "raw"
         return token["raw"]
-
-    if tok_type == "block_code":
-        return token.get("raw", "")
-
-    if tok_type == "codespan":
-        return token.get("raw", "")
 
     # When extracting a list_item's own text, skip nested list children
     if list_item_shallow and tok_type == "list":
@@ -251,16 +259,6 @@ def parse_blocks(markdown_source: str) -> list[Block]:
     section_counter: List[int] = [0]  # wrapped in list for mutability in nested fn
 
     out: List[Block] = []
-
-    # Map mistune token types to our BlockKind
-    _KIND_MAP: Dict[str, BlockKind] = {
-        "heading": "heading",
-        "paragraph": "paragraph",
-        "block_code": "code_block",
-        "table": "table",
-        "block_quote": "blockquote",
-        "thematic_break": "thematic_break",
-    }
 
     def update_heading_path(new_level: int, text: str) -> None:
         """Update heading_stack and heading_path when a heading token is seen."""

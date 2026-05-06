@@ -46,6 +46,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Optional
 from urllib.parse import unquote, urlparse
 
+# Allow `python3 server/annotate_server.py` to find sibling modules under
+# `server.*` without requiring `python3 -m` or an external PYTHONPATH.
+_PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PLUGIN_ROOT not in sys.path:
+    sys.path.insert(0, _PLUGIN_ROOT)
+
 from server.lockfile import (
     LockInfo,
     LockState,
@@ -160,17 +166,12 @@ def _block_to_dict(b: Any) -> dict:
 def find_free_port(start: int, count: int) -> int:
     """Find a free port in ``[start, start+count)`` on 127.0.0.1."""
     for p in range(start, start + count):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.bind(("127.0.0.1", p))
-            s.close()
-            return p
-        except OSError:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.close()
-            except Exception:
-                pass
-            continue
+                s.bind(("127.0.0.1", p))
+            except OSError:
+                continue
+        return p
     raise OSError(f"No free port in range {start}..{start + count - 1}")
 
 
@@ -282,9 +283,29 @@ def make_handler(ctx: AppContext):
                     ctx.pending_writes = 0
                 return ctx.pending_writes
 
+        def _persist(self, new_comments: list) -> Optional[dict]:
+            """Build a Sidecar with ``new_comments`` and write it atomically.
+
+            Returns ``None`` on success (caller proceeds to send the success
+            response) or a dict to send as a 500 response on write failure.
+            Caller must hold ``ctx.write_lock`` and be inside the
+            ``_begin_write`` / ``_end_write`` accounting.
+            """
+            new_sidecar = Sidecar(
+                version=SIDECAR_VERSION,
+                source_file=ctx.sidecar.source_file or ctx.target_file,
+                comments=new_comments,
+            )
+            try:
+                write_sidecar_atomic(ctx.sidecar_path, new_sidecar)
+            except SidecarWriteError as exc:
+                return {"error": "sidecar-write-failed", "message": str(exc)}
+            ctx.sidecar = new_sidecar
+            return None
+
         def _refuse_if_draining(self) -> bool:
             with ctx.state_lock:
-                if ctx.state == ServerState.DRAINING or ctx.state == ServerState.STOPPED:
+                if ctx.state in {ServerState.DRAINING, ServerState.STOPPED}:
                     self._send_json(503, {"error": "draining"})
                     return True
             return False
@@ -333,13 +354,10 @@ def make_handler(ctx: AppContext):
         # ---------------------- static + index ---------------------------
         def _serve_index(self) -> None:
             index_path = os.path.join(STATIC_DIR, "index.html")
-            if os.path.isfile(index_path):
-                try:
-                    with open(index_path, "rb") as f:
-                        body = f.read()
-                except OSError:
-                    body = PLACEHOLDER_INDEX_HTML.encode("utf-8")
-            else:
+            try:
+                with open(index_path, "rb") as f:
+                    body = f.read()
+            except OSError:
                 body = PLACEHOLDER_INDEX_HTML.encode("utf-8")
             self._send_bytes(200, "text/html; charset=utf-8", body)
 
@@ -442,20 +460,10 @@ def make_handler(ctx: AppContext):
                         applied_at=None,
                     )
                     new_comments = list(ctx.sidecar.comments) + [comment]
-                    new_sidecar = Sidecar(
-                        version=SIDECAR_VERSION,
-                        source_file=ctx.sidecar.source_file or ctx.target_file,
-                        comments=new_comments,
-                    )
-                    try:
-                        write_sidecar_atomic(ctx.sidecar_path, new_sidecar)
-                    except SidecarWriteError as exc:
-                        self._send_json(500, {
-                            "error": "sidecar-write-failed",
-                            "message": str(exc),
-                        })
+                    write_error = self._persist(new_comments)
+                    if write_error is not None:
+                        self._send_json(500, write_error)
                         return
-                    ctx.sidecar = new_sidecar
             finally:
                 pending_after = self._end_write()
 
@@ -501,20 +509,10 @@ def make_handler(ctx: AppContext):
                     )
                     new_comments = list(ctx.sidecar.comments)
                     new_comments[idx] = updated
-                    new_sidecar = Sidecar(
-                        version=SIDECAR_VERSION,
-                        source_file=ctx.sidecar.source_file or ctx.target_file,
-                        comments=new_comments,
-                    )
-                    try:
-                        write_sidecar_atomic(ctx.sidecar_path, new_sidecar)
-                    except SidecarWriteError as exc:
-                        self._send_json(500, {
-                            "error": "sidecar-write-failed",
-                            "message": str(exc),
-                        })
+                    write_error = self._persist(new_comments)
+                    if write_error is not None:
+                        self._send_json(500, write_error)
                         return
-                    ctx.sidecar = new_sidecar
             finally:
                 pending_after = self._end_write()
 
@@ -538,20 +536,10 @@ def make_handler(ctx: AppContext):
                         return
                     new_comments = list(ctx.sidecar.comments)
                     del new_comments[idx]
-                    new_sidecar = Sidecar(
-                        version=SIDECAR_VERSION,
-                        source_file=ctx.sidecar.source_file or ctx.target_file,
-                        comments=new_comments,
-                    )
-                    try:
-                        write_sidecar_atomic(ctx.sidecar_path, new_sidecar)
-                    except SidecarWriteError as exc:
-                        self._send_json(500, {
-                            "error": "sidecar-write-failed",
-                            "message": str(exc),
-                        })
+                    write_error = self._persist(new_comments)
+                    if write_error is not None:
+                        self._send_json(500, write_error)
                         return
-                    ctx.sidecar = new_sidecar
             finally:
                 pending_after = self._end_write()
 
