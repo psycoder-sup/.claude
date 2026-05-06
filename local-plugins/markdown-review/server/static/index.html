@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>markdown review</title>
+  <title>Markdown Review</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="topbar-title">markdown review</div>
+    <div class="topbar-title">
+      <span class="topbar-dot" aria-hidden="true"></span>
+      <span class="topbar-name">Markdown Review</span>
+    </div>
     <div id="banners" class="banners">
       <!-- mtime-changed banner and save-failure banner are inserted here by app.js -->
     </div>
@@ -28,7 +31,7 @@
   <template id="block-template">
     <article class="block" data-anchor="">
       <div class="block-content"><!-- innerHTML of Block.html --></div>
-      <button class="comment-icon" type="button" aria-label="Add comment">&#x1F4AC;</button>
+      <button class="comment-icon" type="button" aria-label="Add comment"></button>
     </article>
   </template>
 
