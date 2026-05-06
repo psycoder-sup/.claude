@@ -5,5 +5,8 @@
       "WebFetch",
       "Skill(plugin-dev:skill-development)"
     ]
-  } 
+  },
+  "enabledPlugins": {
+    "markdown-review@local": true
+  }
 }

@@ -14,6 +14,13 @@
       "description": "End-to-end feature pipeline: PRD -> SPEC -> execute with TDD gates. Bundles create-prd, create-spec, spec-to-work, execute-work-orchestration, execute-task, polish, and wrap skills along with cto, devils-advocate, spec-reviewer, and feature-planner agents.",
       "version": "1.0.0",
       "strict": true
+    },
+    {
+      "name": "markdown-review",
+      "source": "./markdown-review",
+      "description": "Markdown comment review skill that opens a document in a browser for block-level commenting and writes a sidecar JSON file.",
+      "version": "0.1.0",
+      "strict": true
     }
   ]
 }
