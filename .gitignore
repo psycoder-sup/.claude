@@ -32,4 +32,5 @@ __pycache__/
 *.py[cod]
 
 .dev/tmp/
+.last-cleanup
 
