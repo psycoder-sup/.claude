@@ -8,11 +8,21 @@ else
 fi
 
 input=$(cat)
-session_id=$(echo "$input" | grep -o '"session_id":"[^"]*"' | head -1 | sed 's/"session_id":"//;s/"$//' | cut -c1-8)
-current_dir_path=$(echo "$input" | grep -o '"current_dir":"[^"]*"' | head -1 | sed 's/"current_dir":"//;s/"$//')
+
+# Parse fields with jq (handles nested objects and absent fields cleanly).
+# `// empty` makes absent fields produce no output instead of "null".
+session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' | cut -c1-8)
+current_dir_path=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 current_dir=$(basename "$current_dir_path")
-model_name=$(echo "$input" | grep -o '"display_name":"[^"]*"' | head -1 | sed 's/"display_name":"//;s/"$//' | sed 's/^\([A-Z]\)[a-z]* \([0-9.]*\).*/\1 \2/')
-context_used=$(echo "$input" | grep -o '"used_percentage":[0-9.]*' | head -1 | sed 's/"used_percentage"://' | cut -d'.' -f1)
+model_display=$(printf '%s' "$input" | jq -r '.model.display_name // empty')
+model_name=$(printf '%s' "$model_display" | sed 's/^\([A-Z]\)[a-z]* \([0-9.]*\).*/\1 \2/')
+context_used=$(printf '%s' "$input" | jq -r '.context_window.used_percentage // 0' | cut -d'.' -f1)
+
+# Rate limit fields (may be absent for free tier / before first API response).
+util_5h=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty' | cut -d'.' -f1)
+resets_5h=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+util_7d=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' | cut -d'.' -f1)
+resets_7d=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
 RESET=$'\033[0m'
 DIM=$'\033[0;90m'
@@ -111,54 +121,37 @@ if [ "$SHOW_CONTEXT" = "1" ]; then
   fi
 fi
 
+# resets_at is Unix epoch seconds; format with the system `date` tool.
 format_reset_time() {
-  local resets_at="$1"
-  if [ -n "$resets_at" ] && [ "$resets_at" != "null" ]; then
-    local iso_time=$(echo "$resets_at" | sed 's/\.[0-9]*Z$//')
-    local epoch=$(date -ju -f "%Y-%m-%dT%H:%M:%S" "$iso_time" "+%s" 2>/dev/null)
-    if [ -n "$epoch" ]; then
-      local reset_time=$(date -r "$epoch" "+%H:%M" 2>/dev/null)
-      [ -n "$reset_time" ] && echo " @${reset_time}"
-    fi
-  fi
+  local epoch="$1" fmt="$2"
+  [ -z "$epoch" ] && return
+  [ "$epoch" = "null" ] && return
+  [ "$epoch" -eq "$epoch" ] 2>/dev/null || return
+  local out
+  out=$(date -r "$epoch" "+${fmt}" 2>/dev/null) || return
+  [ -n "$out" ] && echo " @${out}"
 }
 
 usage_5h_text=""
 usage_7d_text=""
 if [ "$SHOW_USAGE" = "1" ]; then
-  swift_result=$(swift "$HOME/.claude/statusline/fetch-claude-usage.swift" 2>/dev/null)
-
-  if [ -n "$swift_result" ]; then
-    util_5h=$(echo "$swift_result" | cut -d'|' -f1)
-    resets_5h=$(echo "$swift_result" | cut -d'|' -f2)
-    util_7d=$(echo "$swift_result" | cut -d'|' -f3)
-    resets_7d=$(echo "$swift_result" | cut -d'|' -f4)
-
-    if [ -n "$util_5h" ] && [ "$util_5h" != "ERROR" ]; then
-      dot_color_5h=$(get_dot_color "$util_5h")
-      dots_5h=$(build_dots "$util_5h")
-      reset_5h_display=""
-      [ "$SHOW_RESET_TIME" = "1" ] && reset_5h_display=$(format_reset_time "$resets_5h")
-      usage_5h_text="${WHITE}5h ${dot_color_5h}${dots_5h} ${CYAN}${util_5h}%${DIM}${reset_5h_display}${RESET}"
-    else
-      usage_5h_text="${WHITE}5h ${DIM}○○○○○ ~${RESET}"
-    fi
-
-    if [ -n "$util_7d" ] && [ "$util_7d" != "ERROR" ]; then
-      dot_color_7d=$(get_dot_color "$util_7d")
-      dots_7d=$(build_dots "$util_7d")
-      reset_7d_display=""
-      if [ "$SHOW_RESET_TIME" = "1" ] && [ -n "$resets_7d" ] && [ "$resets_7d" != "null" ]; then
-        iso_7d=$(echo "$resets_7d" | sed 's/\.[0-9]*[+-].*$//')
-        epoch_7d=$(date -ju -f "%Y-%m-%dT%H:%M:%S" "$iso_7d" "+%s" 2>/dev/null)
-        [ -n "$epoch_7d" ] && reset_7d_display=" @$(date -r "$epoch_7d" "+%m/%d" 2>/dev/null)"
-      fi
-      usage_7d_text="${WHITE}7d ${dot_color_7d}${dots_7d} ${CYAN}${util_7d}%${DIM}${reset_7d_display}${RESET}"
-    else
-      usage_7d_text="${WHITE}7d ${DIM}○○○○○ ~${RESET}"
-    fi
+  if [ -n "$util_5h" ]; then
+    dot_color_5h=$(get_dot_color "$util_5h")
+    dots_5h=$(build_dots "$util_5h")
+    reset_5h_display=""
+    [ "$SHOW_RESET_TIME" = "1" ] && reset_5h_display=$(format_reset_time "$resets_5h" "%H:%M")
+    usage_5h_text="${WHITE}5h ${dot_color_5h}${dots_5h} ${CYAN}${util_5h}%${DIM}${reset_5h_display}${RESET}"
   else
     usage_5h_text="${WHITE}5h ${DIM}○○○○○ ~${RESET}"
+  fi
+
+  if [ -n "$util_7d" ]; then
+    dot_color_7d=$(get_dot_color "$util_7d")
+    dots_7d=$(build_dots "$util_7d")
+    reset_7d_display=""
+    [ "$SHOW_RESET_TIME" = "1" ] && reset_7d_display=$(format_reset_time "$resets_7d" "%m/%d")
+    usage_7d_text="${WHITE}7d ${dot_color_7d}${dots_7d} ${CYAN}${util_7d}%${DIM}${reset_7d_display}${RESET}"
+  else
     usage_7d_text="${WHITE}7d ${DIM}○○○○○ ~${RESET}"
   fi
 fi
