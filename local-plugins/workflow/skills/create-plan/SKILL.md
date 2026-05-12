@@ -1,12 +1,12 @@
 ---
 name: create-plan
-description: Drafts a technical implementation plan that bridges a PRD to code (approach, file changes, types, test plan, tagged task list), runs one optional critic pass via devils-advocate, batches user decisions in one AskUserQuestion. Invoked only via the explicit `/create-plan` slash command.
+description: Drafts a technical implementation plan that bridges a PRD to code (approach, file changes, types, tagged task list with per-task tests), runs one optional critic pass via devils-advocate, batches user decisions in one AskUserQuestion. Invoked only via the explicit `/create-plan` slash command.
 disable-model-invocation: true
 ---
 
 # Create Plan
 
-Bridge a PRD to executable code. The plan includes approach, file-by-file changes, types, test plan, and a tagged task list that `/execute-plan` runs against.
+Bridge a PRD to executable code. The plan includes approach, file-by-file changes, types, and a tagged task list — each task with its own inline tests — that `/execute-plan` runs against.
 
 **You (the session running this skill) draft the plan directly — not via a subagent.** Critic is optional and runs once if invoked.
 
@@ -22,7 +22,7 @@ Bridge a PRD to executable code. The plan includes approach, file-by-file change
 
 A plan should be based on a PRD. If no PRD exists:
 1. **Ask the user** if they want to create a PRD first (suggest `/workflow:create-prd`)
-2. If they want to proceed without a PRD, acknowledge the risk and continue — you will work from the user's description directly. Note any ambiguities as Open Questions in §6.
+2. If they want to proceed without a PRD, acknowledge the risk and continue — you will work from the user's description directly. Note any ambiguities as Open Questions in §5.
 
 ## Process Overview
 
@@ -73,15 +73,14 @@ Write the plan with `Write` to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-
 
 **This path convention is mandatory.** Do not defer to project-specific conventions, existing plans in other locations, or `CLAUDE.md` overrides — always write to `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`.
 
-Fill all 6 sections:
+Fill all 5 sections:
 - §1 Approach — prose, 10-20 lines
 - §2 File-by-file changes — table
 - §3 Types & interfaces — verbatim code in the project's language
-- §4 Test plan — bullet per test, traced to FR + task
-- §5 Tasks — numbered, dependency-ordered, each tagged `[model: haiku|sonnet|opus]`
-- §6 Risks & open questions
+- §4 Tasks — numbered, dependency-ordered, each tagged `[model: haiku|sonnet|opus]`, each carrying its own **Tests:** list (tests live inside the task that introduces them — no separate test-plan section)
+- §5 Risks & open questions
 
-**Tagging tasks with model tier (§5):** apply this heuristic when assigning a tag:
+**Tagging tasks with model tier (§4):** apply this heuristic when assigning a tag:
 
 | Tier | Use when |
 |---|---|
@@ -92,12 +91,14 @@ Fill all 6 sections:
 If unsure → sonnet. The tag determines the starting model `/execute-task` uses; failures escalate one tier per retry.
 
 **Behavioral rules during drafting:**
-- Every PRD FR must map to at least one test in §4 and at least one task in §5
-- Every file in §2 must appear in at least one task in §5
+- Every PRD FR must appear in at least one task's **Tests:** list in §4
+- Every task in §4 must have at least one entry under **Tests:** (even one happy-path assertion). A task with no tests is a smell — either the task is too vague or it's a no-op.
+- Every file in §2 must appear in at least one task in §4
 - §3 type code must be real (compiles against existing types) — not placeholder
-- Don't include code anywhere except §3 (types) and §4 (test skeletons)
-- Sequence §5 by dependency, not by layer or alphabet
+- Don't include code anywhere except §3 (types) and §4 (optional inline test skeletons under a task's Tests list)
+- Sequence §4 tasks by dependency, not by layer or alphabet
 - Cap task scope: if a task touches more than ~5 files or spans multiple layers, split it
+- Tests for a task should exercise behavior that task itself introduces — if a test depends on a later task's code, move it to that later task
 
 ### Phase 4: (Optional) Critique
 
@@ -120,8 +121,9 @@ Tag every concern with [Category] — [Severity]: [Short Title]
 Reference the relevant plan section by name in each concern.
 
 Focus on: technical soundness of §1 (approach), correctness of §3 (types) against the
-codebase, completeness of §4 (test plan) against the PRD's FRs, dependency ordering of
-§5 (tasks), and feasibility of model tier assignments.
+codebase, completeness of each task's inline Tests list in §4 against the PRD's FRs,
+dependency ordering of §4 tasks, and feasibility of model tier assignments. Flag any
+task whose Tests list is empty or doesn't cover the task's "done when".
 
 List the issues that must be fixed under a "Required Fixes" heading.
 ```
@@ -130,8 +132,8 @@ After the critique, present **all** Required Fixes to the user in **one** batche
 
 Apply the user's directions with `Edit`:
 - Accept → apply fix
-- Defer → move to §6 Open Questions
-- Disagree → leave as-is (note rationale in §6 if user provided one)
+- Defer → move to §5 Open Questions
+- Disagree → leave as-is (note rationale in §5 if user provided one)
 
 **Do NOT re-dispatch the critic.** If the user wants another pass after edits, they will ask.
 
@@ -144,11 +146,11 @@ Use `AskUserQuestion` to ask how to proceed:
 
 #### Phase 5b: Section-by-Section Review
 
-For each of the 6 sections:
+For each of the 5 sections:
 1. Present a concise summary (bullets, not raw text)
 2. Ask if changes needed
 3. Apply edits directly with `Edit` — no subagent
-4. Flag inconsistencies you notice (e.g., a task in §5 that touches a file not listed in §2)
+4. Flag inconsistencies you notice (e.g., a task in §4 that touches a file not listed in §2, or a task whose **Tests:** list is empty / doesn't cover the "done when")
 
 After all sections reviewed, mark the plan as Approved.
 
@@ -170,7 +172,8 @@ For "edit the plan", "update the plan for X":
 
 - **Single optional critique pass.** No automatic re-critique after revisions.
 - **You draft and revise; only the critic is a subagent.** Phase 1 (locate), Phase 2 (explore), Phase 3 (draft), Phase 5 (revise) all run in your main session.
-- **Tag every task in §5 with `[model: ...]`.** This is what `/execute-plan` uses to pick the implementer model. If unsure, tag `sonnet`.
+- **Tag every task in §4 with `[model: ...]`.** This is what `/execute-plan` uses to pick the implementer model. If unsure, tag `sonnet`.
+- **Every task in §4 must have an inline `Tests:` list.** Tests live with the task that introduces them; there is no separate test-plan section.
 - **Always use `AskUserQuestion` to present choices** — do not decide on the user's behalf.
 - **Batch Phase 4 user decisions into one AskUserQuestion** — never one question per issue.
 - **Use kebab-case** for both the feature directory and the plan filename: `docs/feature/<feature-name>/YYYY-MM-DD-<feature-name>-plan.md`. Use today's date.
@@ -180,4 +183,4 @@ For "edit the plan", "update the plan for X":
 
 ### Reference Files
 
-- **`references/plan-template.md`** — The 6-section structure you fill in during Phase 3
+- **`references/plan-template.md`** — The 5-section structure you fill in during Phase 3 (tests live inline under each task in §4)

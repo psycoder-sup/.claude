@@ -22,7 +22,7 @@ $ARGUMENTS
 
 Parse the arguments as pipe-delimited fields:
 - **Task title** — short name for the task
-- **Task text** — full task description from plan §5, including the `[model: ...]` tag, files, dependencies, deliverables, "done when"
+- **Task text** — full task description from plan §4, including the `[model: ...]` tag, files, dependencies, deliverables, "done when", and the inline **Tests:** list
 - **Plan path** — path to the plan document
 - **PRD path** — path to the companion PRD (or "none")
 
@@ -65,24 +65,24 @@ Before dispatching Step 1 or Step 2, read the plan and PRD files **once** in the
 1. `Read` the plan file at `{PLAN_PATH}`. Extract:
    - **§1 Approach** — full content, verbatim
    - **§3 Types & Interfaces** — full content, verbatim (this is critical — types must not drift between plan and implementation)
-   - **§4 Test plan entries** — only entries that mention this task (match by task number or task title)
+
+   Tests for this task are already part of the task's §4 entry, which the caller passes as `{TASK_TEXT}`. No separate test extraction is needed.
 2. `Read` the PRD file at `{PRD_PATH}` if it exists. Extract:
    - **§4 Functional Requirements** — full FR list, verbatim
 
-These extracted blocks become `{INLINE_PLAN_APPROACH}`, `{INLINE_PLAN_TYPES}`, `{INLINE_PLAN_TESTS}`, `{INLINE_PRD_FRS}` placeholders in the implementer and validator prompts.
+These extracted blocks become `{INLINE_PLAN_APPROACH}`, `{INLINE_PLAN_TYPES}`, `{INLINE_PRD_FRS}` placeholders in the implementer and validator prompts.
 
 ### Step 1: Implement
 
 Build the implementer prompt using the template at `references/implementer-prompt.md`. Fill placeholders:
 - `{TASK_TITLE}` — task title
-- `{TASK_TEXT}` — full task text (plan §5 entry, includes `[model: ...]` tag)
+- `{TASK_TEXT}` — full task text (plan §4 entry, includes `[model: ...]` tag and the **Tests:** list)
 - `{PLAN_PATH}` — plan file path (for fallback deep-reads)
 - `{PRD_PATH}` — PRD file path (or "none")
 - `{WORKING_DIR}` — current working directory
 - `{PREVIOUS_ISSUES}` — issues from the prior validate cycle, or "None" on first attempt
 - `{INLINE_PLAN_APPROACH}` — extracted in Step 0
 - `{INLINE_PLAN_TYPES}` — extracted in Step 0
-- `{INLINE_PLAN_TESTS}` — extracted in Step 0
 - `{INLINE_PRD_FRS}` — extracted in Step 0 (or "None — no PRD")
 
 Dispatch via **Task tool** (`general-purpose`, **model = current_tier**). Wait for completion.
@@ -99,12 +99,11 @@ Build the validator prompt using the template at `${CLAUDE_PLUGIN_ROOT}/skills/e
 - `{PLAN_PATH}` — plan file path (for fallback deep-reads)
 - `{PRD_PATH}` — PRD file path (or "none")
 - `{SCOPE}` — `task: {TASK_TITLE}`
-- `{TASK_TEXT}` — the full plan §5 task entry
+- `{TASK_TEXT}` — the full plan §4 task entry (includes the **Tests:** list)
 - `{CHANGED_FILES}` — list of files from the implementer's report
 - `{WORKING_DIR}` — current working directory
 - `{INLINE_PLAN_APPROACH}` — same extracted block as Step 1
 - `{INLINE_PLAN_TYPES}` — same extracted block as Step 1
-- `{INLINE_PLAN_TESTS}` — same extracted block as Step 1
 - `{INLINE_PRD_FRS}` — same extracted block as Step 1
 
 Dispatch via **Task tool** (`general-purpose`, **model: sonnet**). Wait for completion.

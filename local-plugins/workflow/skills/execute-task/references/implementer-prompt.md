@@ -2,7 +2,9 @@
 
 Use this template when dispatching an implementer subagent via the Task tool.
 
-**Placeholders:** `{TASK_TITLE}`, `{TASK_TEXT}`, `{PLAN_PATH}`, `{PRD_PATH}`, `{WORKING_DIR}`, `{PREVIOUS_ISSUES}`, `{INLINE_PLAN_APPROACH}`, `{INLINE_PLAN_TYPES}`, `{INLINE_PLAN_TESTS}`, `{INLINE_PRD_FRS}`
+**Placeholders:** `{TASK_TITLE}`, `{TASK_TEXT}`, `{PLAN_PATH}`, `{PRD_PATH}`, `{WORKING_DIR}`, `{PREVIOUS_ISSUES}`, `{INLINE_PLAN_APPROACH}`, `{INLINE_PLAN_TYPES}`, `{INLINE_PRD_FRS}`
+
+The task's tests are already part of `{TASK_TEXT}` (plan §4 carries them inline under each task's **Tests:** list) — no separate test placeholder.
 
 **Inlining policy:** the orchestrator (`/execute-task` Step 0) reads the plan and PRD once and substitutes the relevant section content directly into the prompt below. The subagent does **not** need to Read the plan or PRD — everything it needs is inlined. The file paths are kept only as a fallback for deep-reads (e.g., the subagent wants to verify a §2 file-by-file table entry).
 
@@ -18,6 +20,10 @@ Task tool (general-purpose, model = current_tier from /execute-task):
 
     {TASK_TEXT}
 
+    The task block above is the plan §4 entry for this task and includes the
+    **Tests:** list you must implement. Treat each test bullet as a hard
+    acceptance criterion.
+
     ## Plan Context (inlined — do not re-read)
 
     ### Plan §1: Approach
@@ -25,9 +31,6 @@ Task tool (general-purpose, model = current_tier from /execute-task):
 
     ### Plan §3: Types & Interfaces (use verbatim)
     {INLINE_PLAN_TYPES}
-
-    ### Plan §4: Test plan entries for this task
-    {INLINE_PLAN_TESTS}
 
     ## PRD Functional Requirements (inlined)
     {INLINE_PRD_FRS}
@@ -38,8 +41,8 @@ Task tool (general-purpose, model = current_tier from /execute-task):
     - **PRD:** {PRD_PATH}
 
     Read these files only if you need to check something not inlined above
-    (e.g., a plan §2 file table entry, or PRD §5 user flow detail). Default to
-    the inlined content.
+    (e.g., a plan §2 file table entry, plan §5 risks/open questions, or a PRD
+    §5 user flow detail). Default to the inlined content.
 
     ## Previous Issues
 
@@ -66,8 +69,8 @@ Task tool (general-purpose, model = current_tier from /execute-task):
     ### 1. Explore Context
 
     The plan and PRD content you need is **already inlined above**. Re-read the
-    inlined Plan §1 (Approach), §3 (Types — use verbatim), §4 (Test entries for
-    this task), and the PRD FRs.
+    inlined Plan §1 (Approach), §3 (Types — use verbatim), the task's own
+    **Tests:** list (inside `{TASK_TEXT}`), and the PRD FRs.
 
     Then explore the **codebase** to understand existing patterns, conventions,
     and file structure. Identify the test framework and existing test patterns
@@ -82,11 +85,13 @@ Task tool (general-purpose, model = current_tier from /execute-task):
 
     **Step 2a — Write the failing tests:**
 
-    Write tests for the acceptance criteria ("done when" + relevant FRs from the PRD)
-    in this task. Tests should cover the behavior the task is supposed to add.
+    Write the tests listed under the task's **Tests:** list (inside `{TASK_TEXT}`).
+    Every test bullet there is a required test — implement each at the file path
+    indicated. Cover the relevant FRs from the PRD as well.
 
-    Do NOT invent tests beyond what the acceptance criteria require. Do NOT write placeholder
-    `expect(true).toBe(true)` — every assertion must exercise real behavior.
+    Do NOT invent tests beyond what the **Tests:** list and acceptance criteria
+    require. Do NOT write placeholder `expect(true).toBe(true)` — every
+    assertion must exercise real behavior.
 
     **Step 2b — Run the failing tests:**
 

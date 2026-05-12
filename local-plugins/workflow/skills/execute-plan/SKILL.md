@@ -3,7 +3,7 @@ name: execute-plan
 description: >-
   This skill should be used when the user asks to "execute the plan",
   "implement the plan", "run the plan", "build from plan", or wants to
-  sequentially implement all tasks from a plan document. Parses plan §5,
+  sequentially implement all tasks from a plan document. Parses plan §4,
   invokes /execute-task for each task in dependency order, runs stage-end
   test+validation, then polish (1× or 2× per change-size heuristic).
 allowed-tools: [Read, Glob, Grep, Skill, Task, AskUserQuestion, TaskCreate, TaskUpdate, Bash(git:*)]
@@ -13,7 +13,7 @@ argument-hint: "<plan-file-path>"
 
 # Execute Plan
 
-Parse a plan document, execute its §5 tasks sequentially via `/execute-task`, run stage-end test+validation, then polish.
+Parse a plan document, execute its §4 tasks sequentially via `/execute-task`, run stage-end test+validation, then polish.
 
 ## Arguments
 
@@ -32,7 +32,7 @@ Plan File Path
     |
     v
 Phase 1: Parse Plan
-    - Read plan, locate PRD, extract tasks from §5
+    - Read plan, locate PRD, extract tasks from §4 (each task carries its own inline Tests list)
     - Capture starting git ref for end-of-run diff
     - Present task list for user approval
     |
@@ -67,20 +67,21 @@ Phase 5: Summary report
 4. **Extract sections** from the plan in memory:
    - **§1 Approach** → `INLINE_PLAN_APPROACH`
    - **§3 Types & Interfaces** → `INLINE_PLAN_TYPES`
-   - **§4 Test plan** (full) → `INLINE_PLAN_TESTS_FULL`
-   - **§5 Tasks** → list of task entries (capture the full block per task)
+   - **§4 Tasks** → list of task entries (capture the full block per task — each entry includes the **Tests:** list)
+   - **§4 Tasks (full)** → `INLINE_PLAN_TASKS_FULL` (the entire §4 verbatim — used by the stage-end validator so it can trace every FR to a test)
 
    From the PRD (if present):
    - **§4 Functional Requirements** → `INLINE_PRD_FRS`
 
-5. **Extract tasks from §5.** Each task is a numbered entry with:
+5. **Extract tasks from §4.** Each task is a numbered entry with:
    - Title (the line after the number)
    - Model tag `[model: haiku|sonnet|opus]` — default `sonnet` if missing
    - Files (line under "Files:")
    - Depends on (line under "Depends on:")
    - Done when (line under "Done when:")
+   - Tests (bullets under "Tests:" — each bullet tagged with its FR)
 
-   Capture each task's full §5 entry verbatim — this becomes `TASK_TEXT` passed to `/execute-task`.
+   Capture each task's full §4 entry verbatim (including the **Tests:** list) — this becomes `TASK_TEXT` passed to `/execute-task`.
 
 6. **Validate dependency DAG.** Tasks must reference only earlier task numbers in "Depends on:". If a cycle or forward reference exists, halt and report.
 
@@ -128,8 +129,7 @@ Build the validator prompt using `references/test-and-validate-prompt.md`. Fill 
 - `{WORKING_DIR}` — current working directory
 - `{INLINE_PLAN_APPROACH}` — from Phase 1, plan §1
 - `{INLINE_PLAN_TYPES}` — from Phase 1, plan §3
-- `{INLINE_PLAN_TESTS}` — `INLINE_PLAN_TESTS_FULL` (whole §4 for stage-end)
-- `{INLINE_PLAN_TASKS}` — list of `<task title> — <done when>` for each task in §5
+- `{INLINE_PLAN_TASKS}` — `INLINE_PLAN_TASKS_FULL` (the entire §4 verbatim — full task entries including each task's **Tests:** list, so the validator can trace every FR to a covering test)
 - `{INLINE_PRD_FRS}` — from Phase 1, PRD §4 (or "None — no PRD")
 
 Dispatch via **Task tool** (`general-purpose`, **model: sonnet**). Wait for completion.
@@ -198,7 +198,7 @@ If 2× heuristic triggered, run polish again after the first finishes (sequentia
 - **Always invoke `/workflow:execute-task` for each task.** Never implement directly in this skill.
 - **Sequential execution only.** Tasks run in dependency order — do not parallelize.
 - **User approval before execution.** Always present the parsed task list and get confirmation in Phase 1.
-- **Pass the full §5 task entry** (including `[model: ...]` tag) as `task_text` — `/execute-task` parses the tag.
+- **Pass the full §4 task entry** (including the `[model: ...]` tag and the inline **Tests:** list) as `task_text` — `/execute-task` parses the tag and the implementer relies on the inline tests.
 - **Halt on BLOCKED.** Do not skip blocked tasks automatically — always consult the user.
 - **Polish runs once at stage-end** (or twice for big changes), never per-task. Per-task validation handled by `/execute-task` Step 2.
 - **Stage-end validate is whole-plan scope**, not per-task — catches cross-task regressions and integration issues that per-task validation misses.
