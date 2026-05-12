@@ -198,6 +198,13 @@ async function loadDocument() {
 
 // ---------- Top-level render ----------
 function renderApp() {
+  // Capture scrollTop from the about-to-be-discarded scroll containers so the
+  // user doesn't get yanked to the top each time we re-render.
+  const prevDocPane = rootEl ? rootEl.querySelector(".doc-pane") : null;
+  const prevPanelList = rootEl ? rootEl.querySelector(".panel-list") : null;
+  const savedDocScroll = prevDocPane ? prevDocPane.scrollTop : 0;
+  const savedPanelScroll = prevPanelList ? prevPanelList.scrollTop : 0;
+
   // Clean up modals from prior render (toast manages itself).
   document.querySelectorAll(".modal-veil, .confirm").forEach(n => n.remove());
   // Drop the previous composer's resize listeners — its DOM goes away with the doc re-render below.
@@ -218,12 +225,54 @@ function renderApp() {
   );
   rootEl.replaceChildren(app);
 
+  // Restore scroll positions on the freshly-mounted containers.
+  const newDocPane = rootEl.querySelector(".doc-pane");
+  const newPanelList = rootEl.querySelector(".panel-list");
+  if (newDocPane) newDocPane.scrollTop = savedDocScroll;
+  if (newPanelList) newPanelList.scrollTop = savedPanelScroll;
+
   // Toast + modals are appended outside the app grid
   if (STATE.showSubmitModal) document.body.appendChild(renderSubmitModal());
   if (STATE.confirm)         document.body.appendChild(renderConfirm());
 
+  // Adjust doc-wrap alignment so the floating composer has room (must run
+  // before mountComposer so its offsetTop math sees the final layout).
+  applyDocLayout();
+
   // Mount composer if needed (must come AFTER blocks are in the DOM)
   if (STATE.composerFor) mountComposer(STATE.composerFor);
+}
+
+// Shift the doc-wrap left (and shrink its max-width if needed) so the floating
+// composer at `left: calc(100% + 32px); width: 360px` doesn't get clipped by
+// the doc-pane edge or hidden behind the comments panel.
+function applyDocLayout() {
+  const docPane = rootEl ? rootEl.querySelector(".doc-pane") : null;
+  const docWrap = docPane ? docPane.querySelector(".doc-wrap") : null;
+  if (!docPane || !docWrap) return;
+
+  docWrap.classList.remove("shift-left");
+  docWrap.style.maxWidth = "";
+
+  if (!STATE.composerFor) return;
+  // Below the stack-layout breakpoint the composer falls back to static flow.
+  if (window.matchMedia("(max-width: 980px)").matches) return;
+
+  const paneWidth = docPane.clientWidth;
+  // Composer (width 360, left: calc(100% + 32px) relative to .doc which ends
+  // 80px inside .doc-wrap) overhangs .doc-wrap.right by 360 + 32 - 80 = 312px.
+  // Add 24px breathing room from the pane edge.
+  const composerReserve = 312 + 24;
+  const defaultMaxWidth = 720;
+
+  // Centered layout: free space on the right = (paneWidth - maxWidth) / 2.
+  if ((paneWidth - defaultMaxWidth) / 2 >= composerReserve) return;
+
+  docWrap.classList.add("shift-left");
+  const cappedMax = Math.max(360, paneWidth - composerReserve);
+  if (cappedMax < defaultMaxWidth) {
+    docWrap.style.maxWidth = cappedMax + "px";
+  }
 }
 
 function renderStopped() {
@@ -973,6 +1022,9 @@ async function init() {
   document.addEventListener("mousemove", checkMtime, { once: true });
   document.addEventListener("focusin", checkMtime, { once: true });
   setInterval(checkMtime, 30000);
+
+  // Re-check doc/composer fit on viewport changes.
+  window.addEventListener("resize", applyDocLayout);
 
   // Global keys
   document.addEventListener("keydown", (e) => {

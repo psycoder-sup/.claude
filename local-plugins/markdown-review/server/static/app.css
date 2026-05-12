@@ -54,6 +54,9 @@ body {
 .doc-pane::-webkit-scrollbar { width: 10px; }
 .doc-pane::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; border: 2px solid var(--bg); }
 .doc-wrap { max-width: 720px; margin: 0 auto; padding: 56px 80px 200px; }
+/* When the composer is open and the pane can't fit a centered doc + composer,
+   left-align the doc so the composer has room on the right. */
+.doc-wrap.shift-left { margin-left: 0; margin-right: auto; }
 .doc {
   font-family: var(--serif);
   font-size: 17px;
