@@ -37,3 +37,16 @@ Retrieve the work ID from the `baragi session start` call made earlier in this c
 ### Leaf work (no children)
 
 Update the work status to done using the baragi CLI, setting status to "done" and providing a brief summary of what was delivered (not a list of files changed).
+
+## Step 4: Prune Per-Feature Agent Memory
+
+Per-document critique state belongs in the PRD/plan markdown, not in agent memory. After a feature ships, clean up any stale entries that snuck in.
+
+1. Glob `.claude/agent-memory/*/critic_*.md` to find per-document critic memories.
+2. If no matches exist, skip this step silently.
+3. Otherwise, list the matches and use `AskUserQuestion` to confirm which to delete (default: all entries tied to the just-shipped feature; offer "delete all", "keep all", or per-file selection).
+4. For each file the user approves:
+   - Delete the file.
+   - Remove its line from the same agent's `MEMORY.md` index (if present).
+
+Do not delete memory files that look like durable project facts (paths, conventions, stack quirks) — those stay. Only the `critic_*` per-document files are in scope.
