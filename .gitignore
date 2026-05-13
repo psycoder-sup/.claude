@@ -33,4 +33,5 @@ __pycache__/
 
 .dev/tmp/
 .last-cleanup
+.playwright-mcp/
 
