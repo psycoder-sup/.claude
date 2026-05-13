@@ -196,6 +196,41 @@ def _heading_marker(level: int) -> str:
     return "#" * level
 
 
+def _render_list_item_html(
+    item_token: Dict[str, Any],
+    *,
+    ordered: bool,
+    item_number: int,
+    depth: int,
+) -> str:
+    """Render a single ``list_item`` wrapped in its own ``<ol>``/``<ul>``.
+
+    Because each list item is its own commentable block, we render it in
+    isolation. To preserve the visual marker (number or bullet), the rendered
+    ``<li>`` is wrapped in a list element with:
+
+    - ``start="N"`` on ``<ol>`` so ordered items keep their original number,
+    - ``data-md-depth="D"`` on the wrapper so CSS can indent nested items.
+
+    Nested ``list`` children inside the item are stripped before rendering
+    (they are emitted as their own blocks by :func:`_process_list`), otherwise
+    the same content would be rendered twice.
+    """
+    # Shallow-copy the token with a filtered children list — the inner dicts
+    # are still shared, but _render_token_html deep-copies before rendering.
+    filtered = {
+        **item_token,
+        "children": [
+            c for c in item_token.get("children", []) if c.get("type") != "list"
+        ],
+    }
+    li_html = _render_token_html(filtered).strip()
+
+    if ordered:
+        return f'<ol start="{item_number}" data-md-depth="{depth}">{li_html}</ol>'
+    return f'<ul data-md-depth="{depth}">{li_html}</ul>'
+
+
 def _process_list(
     list_token: Dict[str, Any],
     heading_path: str,
@@ -204,28 +239,40 @@ def _process_list(
 ) -> None:
     """Walk a ``list`` token and emit one ``Block`` per ``list_item``.
 
-    Nested lists inside a list_item are also walked recursively.
-    The ``section_counter`` is a one-element list used as a mutable integer
-    that counts non-heading blocks within the current heading_path scope.
+    Nested lists inside a list_item are also walked recursively, producing
+    their own blocks. Each item's rendered HTML is wrapped in an isolated
+    ``<ol>``/``<ul>`` so ordered numbering and bullet markers survive, and
+    nested-list children are excluded so they don't render twice.
     """
-    for child in list_token.get("children", []):
-        if child.get("type") == "list_item":
-            # Extract plain text for this item only (not nested list children)
-            plain_text = _extract_plain_text(child, list_item_shallow=True).strip()
-            html = _render_token_html(child)
-            anchor = _make_anchor(heading_path, section_counter[0], plain_text)
-            out.append(Block(
-                kind="list_item",
-                anchor=anchor,
-                html=html,
-                plain_text=plain_text,
-            ))
-            section_counter[0] += 1
+    attrs = list_token.get("attrs", {})
+    ordered: bool = bool(attrs.get("ordered", False))
+    depth: int = int(attrs.get("depth", 0))
+    start_value: int = int(attrs.get("start", 1)) if ordered else 1
 
-            # Recurse into nested lists that live inside this list_item
-            for sub_child in child.get("children", []):
-                if sub_child.get("type") == "list":
-                    _process_list(sub_child, heading_path, section_counter, out)
+    list_items = [
+        c for c in list_token.get("children", []) if c.get("type") == "list_item"
+    ]
+    for item_position, child in enumerate(list_items):
+        plain_text = _extract_plain_text(child, list_item_shallow=True).strip()
+        html = _render_list_item_html(
+            child,
+            ordered=ordered,
+            item_number=start_value + item_position,
+            depth=depth,
+        )
+        anchor = _make_anchor(heading_path, section_counter[0], plain_text)
+        out.append(Block(
+            kind="list_item",
+            anchor=anchor,
+            html=html,
+            plain_text=plain_text,
+        ))
+        section_counter[0] += 1
+
+        # Recurse into nested lists that live inside this list_item
+        for sub_child in child.get("children", []):
+            if sub_child.get("type") == "list":
+                _process_list(sub_child, heading_path, section_counter, out)
 
 
 def parse_blocks(markdown_source: str) -> list[Block]:

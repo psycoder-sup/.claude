@@ -75,6 +75,16 @@ body {
 .doc ul, .doc ol { margin: 0 0 16px; padding-left: 26px; }
 .doc li { margin-bottom: 6px; }
 .doc li ul { margin-top: 6px; margin-bottom: 0; }
+/* Each list item is its own block, rendered inside a standalone <ol>/<ul>.
+   Collapse the trailing 16px margin (consecutive items shouldn't gap), and
+   indent based on the original nesting depth (data-md-depth set by the
+   block parser). 22px per level matches default list padding. */
+.doc ul[data-md-depth], .doc ol[data-md-depth] { margin-bottom: 0; }
+.doc ul[data-md-depth="1"], .doc ol[data-md-depth="1"] { margin-left: 22px; }
+.doc ul[data-md-depth="2"], .doc ol[data-md-depth="2"] { margin-left: 44px; }
+.doc ul[data-md-depth="3"], .doc ol[data-md-depth="3"] { margin-left: 66px; }
+.doc ul[data-md-depth="4"], .doc ol[data-md-depth="4"] { margin-left: 88px; }
+.doc ul[data-md-depth="5"], .doc ol[data-md-depth="5"] { margin-left: 110px; }
 .doc blockquote {
   margin: 0 0 16px; padding: 4px 18px;
   border-left: 3px solid var(--line-strong);

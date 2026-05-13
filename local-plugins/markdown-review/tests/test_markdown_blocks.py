@@ -84,6 +84,56 @@ class TestParseListItems(unittest.TestCase):
         self.assertIn("outer", texts)
         self.assertIn("inner", texts)
 
+    def test_ordered_items_wrap_in_ol_with_start(self):
+        blocks = parse_blocks("1. one\n2. two\n3. three\n")
+        items = [b for b in blocks if b.kind == "list_item"]
+        self.assertEqual(len(items), 3)
+        self.assertIn('<ol start="1"', items[0].html)
+        self.assertIn('<ol start="2"', items[1].html)
+        self.assertIn('<ol start="3"', items[2].html)
+        for b in items:
+            self.assertIn('data-md-depth="0"', b.html)
+
+    def test_ordered_list_with_custom_start(self):
+        blocks = parse_blocks("5. five\n6. six\n")
+        items = [b for b in blocks if b.kind == "list_item"]
+        self.assertEqual(len(items), 2)
+        self.assertIn('<ol start="5"', items[0].html)
+        self.assertIn('<ol start="6"', items[1].html)
+
+    def test_unordered_items_wrap_in_ul(self):
+        blocks = parse_blocks("- a\n- b\n")
+        items = [b for b in blocks if b.kind == "list_item"]
+        self.assertEqual(len(items), 2)
+        for b in items:
+            self.assertIn('<ul data-md-depth="0"', b.html)
+            self.assertNotIn("<ol", b.html)
+
+    def test_nested_items_not_duplicated_in_parent_html(self):
+        src = "- outer\n  - inner\n"
+        blocks = parse_blocks(src)
+        items = [b for b in blocks if b.kind == "list_item"]
+        outer = next(b for b in items if b.plain_text == "outer")
+        inner = next(b for b in items if b.plain_text == "inner")
+        # Parent must not contain the nested item's text inline
+        self.assertNotIn("inner", outer.html)
+        # And the inner item is wrapped with depth=1
+        self.assertIn('data-md-depth="1"', inner.html)
+        self.assertIn('data-md-depth="0"', outer.html)
+
+    def test_deeply_nested_depth_attribute(self):
+        src = "- l0\n  - l1\n    - l2\n"
+        blocks = parse_blocks(src)
+        items = [b for b in blocks if b.kind == "list_item"]
+        by_text = {b.plain_text: b.html for b in items}
+        self.assertIn('data-md-depth="0"', by_text["l0"])
+        self.assertIn('data-md-depth="1"', by_text["l1"])
+        self.assertIn('data-md-depth="2"', by_text["l2"])
+        # Parents must not contain descendants
+        self.assertNotIn("l1", by_text["l0"])
+        self.assertNotIn("l2", by_text["l0"])
+        self.assertNotIn("l2", by_text["l1"])
+
 
 class TestParseCodeBlock(unittest.TestCase):
     def test_parses_fenced_code_block_with_lang(self):
