@@ -115,4 +115,4 @@ When invoked while another instance of this plugin is already running, the secon
 
 ## Status
 
-v0.2.0 — detached skill + auto-open browser, auto-apply marker for next-turn apply, "Recently edited by Claude" highlights from a pre-apply snapshot.
+v0.2.1 — server now launched via `run_in_background: true` (harness owns python lifetime instead of `nohup` outliving the session). Builds on v0.2.0: detached skill + auto-open browser, auto-apply marker for next-turn apply, "Recently edited by Claude" highlights from a pre-apply snapshot.
