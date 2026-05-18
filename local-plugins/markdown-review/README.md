@@ -18,7 +18,7 @@ Example:
 /markdown-review:annotate docs/feature/foo/2026-05-06-foo-prd.md
 ```
 
-The skill prints a `http://127.0.0.1:<port>` URL **and auto-opens it in your default browser** (via `open` / `xdg-open` / `wslview`). The Claude turn ends immediately — the server runs detached in the background. Hover any block to reveal the comment icon; click it to add a comment. Multi-line comments. `Cmd/Ctrl+Enter` (or the "Add Comment" button) submits.
+The skill prints a `http://127.0.0.1:<port>` URL **and auto-opens it in your default browser** (via `open` / `xdg-open` / `wslview`). The Claude turn ends immediately — the server is started under the harness's `run_in_background: true` so python is tied to your Claude session and gets cleaned up when the session ends. Boot output is captured at `<source>.review-server.log` (safe to delete). Hover any block to reveal the comment icon; click it to add a comment. Multi-line comments. `Cmd/Ctrl+Enter` (or the "Add Comment" button) submits.
 
 When you're ready, open **Submit & Done** in the panel footer. The modal has an **Auto-apply comments when I click Done** checkbox that controls the next turn:
 
@@ -91,7 +91,7 @@ Atomic writes: the sidecar is written to `<file>.comments.json.tmp` and renamed 
 
 ## Handoff loop
 
-1. **Annotate** — `/markdown-review:annotate <path>`. The skill launches the server, auto-opens the URL in your browser, and ends the turn. The python process is detached (`nohup` + `disown`) and survives the skill turn.
+1. **Annotate** — `/markdown-review:annotate <path>`. The skill issues two Bash calls: Call 1 launches python under `run_in_background: true` so the harness owns the process lifetime (no orphans on session exit), Call 2 polls the boot log at `<source>.review-server.log` and auto-opens the URL in your browser. The Claude turn ends as soon as the URL is visible.
 2. **Done** — clicking "Done" in the UI (or `Ctrl-C` in the terminal) drains pending writes and shuts down the server. The Submit modal's auto-apply checkbox decides what next-turn apply looks like:
    - **Auto-apply on** — the server writes `<file>.comments.json.auto_apply_pending` next to the sidecar before shutting down.
    - **Auto-apply off** (or server killed externally) — no marker is written (any stale marker is cleared).

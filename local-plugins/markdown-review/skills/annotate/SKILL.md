@@ -2,11 +2,11 @@
 name: annotate
 description: >-
   Open a markdown file in a browser and leave block-level comments that are
-  saved to a sidecar JSON file alongside it. The skill launches the server
-  detached and returns immediately, auto-opening the URL in the user's default
-  browser. To apply comments after clicking Done, ask Claude to "apply" — if
-  "Auto-apply" was checked in the Submit modal, Claude applies without asking
-  for confirmation.
+  saved to a sidecar JSON file alongside it. The skill launches the server in
+  the harness's background (so python is tied to your Claude session, not
+  orphaned) and auto-opens the URL in your default browser. To apply comments
+  after clicking Done, ask Claude to "apply" — if "Auto-apply" was checked in
+  the Submit modal, Claude proceeds without asking for confirmation.
 allowed-tools: [Bash, Read, Edit]
 user-invocable: true
 disable-model-invocation: true
@@ -19,30 +19,42 @@ arguments:
 
 # annotate
 
-Launch the local review server for the given markdown file and hand off to the user's browser. **This skill does not wait for the user to finish** — it returns as soon as the server has bound a port and the URL is visible. The user reviews on their own time; applying comments happens in a separate turn.
+Launch the local review server for the given markdown file and hand off to the user's browser. **This skill does not wait for the user to finish** — Step 2 returns as soon as the URL is visible. Applying comments happens in a separate turn.
 
-## Step 1 — Launch + auto-open
+The two Bash calls are split deliberately:
+
+- **Step 1** runs python under `run_in_background: true` so the harness owns the process lifetime. No `nohup`, no `disown`, no shell `&`.
+- **Step 2** is a fast foreground poll of the log Step 1 is writing — that's how we surface the URL and open the browser without blocking the turn.
+
+## Step 1 — Launch the server (run_in_background: true)
+
+**Invoke the Bash tool with `run_in_background: true`** so the python process starts but Claude's turn isn't blocked on its completion. The harness will keep python alive in the background until it exits (Done click, kill, or session end) and notify Claude when it does.
 
 ```bash
-LOG="$(mktemp -t mdreview.XXXXXX)"
-nohup python3 "${CLAUDE_PLUGIN_ROOT}/server/annotate_server.py" "$1" >"$LOG" 2>&1 &
-PID=$!
-disown 2>/dev/null || true
+LOG="$1.review-server.log"
+: > "$LOG"  # truncate any leftover from a prior run
+python3 "${CLAUDE_PLUGIN_ROOT}/server/annotate_server.py" "$1" >"$LOG" 2>&1
+```
 
-# Wait up to ~5s for a URL line, an error, or early exit.
-for _ in $(seq 1 25); do
-  if grep -qE '^(http://|error:)' "$LOG"; then break; fi
-  if ! kill -0 "$PID" 2>/dev/null; then break; fi
+Step 1 returns immediately because of `run_in_background: true` — but the python process is now writing its boot output to `$LOG` ("http://..." on success, "error:..." on failure).
+
+## Step 2 — Surface the URL and open the browser (foreground)
+
+**Run this with Bash (default foreground).** It polls the same log Step 1 is writing, prints the outcome, and best-effort opens the URL.
+
+```bash
+LOG="$1.review-server.log"
+for _ in $(seq 1 50); do
+  if grep -qE '^(http://|error:)' "$LOG" 2>/dev/null; then break; fi
   sleep 0.2
 done
 
-echo "PID: $PID"
 echo "Log: $LOG"
 echo "---"
-cat "$LOG"
+cat "$LOG" 2>/dev/null || true
 echo "---"
 
-URL=$(grep -m1 '^http://' "$LOG" || true)
+URL=$(grep -m1 '^http://' "$LOG" 2>/dev/null || true)
 if [ -z "$URL" ]; then
   echo "OUTCOME: LAUNCH_FAILED"
   exit 0
@@ -61,16 +73,14 @@ fi
 echo "OUTCOME: LAUNCHED"
 ```
 
-The python server keeps running after this Bash call returns — `nohup` + `disown` detaches it from this shell so it survives the skill turn ending.
-
-## Step 2 — Interpret the outcome
+## Step 3 — Interpret the outcome
 
 ### `OUTCOME: LAUNCHED`
 
-The server is up. Tell the user:
+The server is up and the URL was opened in the user's default browser. Tell the user:
 
-- The URL printed above (also shown between the `---` markers) is now open in their default browser. If the auto-open didn't take, they can paste it manually.
-- They should click **Done** in the UI when finished. The browser tab will tell them what happens next based on whether they checked **Auto-apply** in the Submit modal.
+- The URL printed above (also shown between the `---` markers) is now live. If the auto-open didn't take, they can paste the URL manually.
+- They should click **Done** in the UI when finished. The browser tab will explain what happens next based on whether they checked **Auto-apply** in the Submit modal.
 - When they're ready to apply, they can return and say "apply" (or paste the next-turn prompt from the Submit modal). If they checked Auto-apply, Claude will skip the confirmation prompt; otherwise Claude will ask before editing the file.
 
 Then end the turn. **Do not** wait for Done; do not start applying comments in this turn.
