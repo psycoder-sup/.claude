@@ -146,8 +146,57 @@ class TestDocumentEndpoint(unittest.TestCase):
         self.assertIn("comments", body)
         self.assertIn("sidecar_warnings", body)
         self.assertIn("source_mtime", body)
+        self.assertIn("changed_block_ids", body)
         self.assertGreater(len(body["blocks"]), 0)
         self.assertEqual(body["comments"], [])
+        # No snapshot file → no diff info.
+        self.assertEqual(body["changed_block_ids"], [])
+
+    def test_changed_block_ids_empty_when_snapshot_identical(self):
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)
+            # Snapshot = byte-identical copy of source.
+            with open(md, "r", encoding="utf-8") as f:
+                current = f.read()
+            with open(md + ".review-snapshot.md", "w", encoding="utf-8") as f:
+                f.write(current)
+            with running_inprocess_server(md) as ctx:
+                status, body = _request("GET", _url(ctx, "/api/document"))
+        self.assertEqual(status, 200)
+        self.assertEqual(body["changed_block_ids"], [])
+
+    def test_changed_block_ids_includes_modified_paragraph(self):
+        # Snapshot has "First paragraph here." but the current source has been
+        # rewritten with "Rewritten first paragraph." for that one block — and
+        # nothing else changed.
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)  # has "First paragraph here."
+            # Snapshot retains the original.
+            with open(md, "r", encoding="utf-8") as f:
+                original = f.read()
+            with open(md + ".review-snapshot.md", "w", encoding="utf-8") as f:
+                f.write(original)
+            # Rewrite just the first paragraph.
+            rewritten = original.replace(
+                "First paragraph here.", "Rewritten first paragraph."
+            )
+            self.assertNotEqual(original, rewritten)
+            with open(md, "w", encoding="utf-8") as f:
+                f.write(rewritten)
+
+            with running_inprocess_server(md) as ctx:
+                status, body = _request("GET", _url(ctx, "/api/document"))
+        self.assertEqual(status, 200)
+        ids = body["changed_block_ids"]
+        self.assertEqual(len(ids), 1, f"expected 1 changed block, got {ids}")
+        # The lone changed block must be the rewritten paragraph.
+        para = next(
+            b for b in body["blocks"]
+            if b["plain_text"].strip() == "Rewritten first paragraph."
+        )
+        a = para["anchor"]
+        expected = f"{a['heading_path']}::{a['block_index_in_section']}::{a['text_hash']}"
+        self.assertEqual(ids, [expected])
 
     def test_health_returns_state_and_port(self):
         with tempfile.TemporaryDirectory() as d:
@@ -469,6 +518,47 @@ class TestDoneDrains(unittest.TestCase):
                     httpd.server_close()
                 except Exception:
                     pass
+
+    def test_done_defaults_auto_apply_to_false(self):
+        """No body / no auto_apply field → response echoes auto_apply: False
+        and AUTO_APPLY: 0 is printed to stdout."""
+        buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)
+            with running_inprocess_server(md) as ctx:
+                with contextlib.redirect_stdout(buf):
+                    status, body = _request("POST", _url(ctx, "/api/done"), body={})
+        self.assertEqual(status, 200)
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["auto_apply"], False)
+        self.assertIn("AUTO_APPLY: 0", buf.getvalue())
+
+    def test_done_with_auto_apply_true(self):
+        """Body {auto_apply: true} → response echoes True and AUTO_APPLY: 1
+        is printed for the launching skill to grep."""
+        buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)
+            with running_inprocess_server(md) as ctx:
+                with contextlib.redirect_stdout(buf):
+                    status, body = _request(
+                        "POST", _url(ctx, "/api/done"), body={"auto_apply": True}
+                    )
+        self.assertEqual(status, 200)
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["auto_apply"], True)
+        self.assertIn("AUTO_APPLY: 1", buf.getvalue())
+
+    def test_done_rejects_non_bool_auto_apply(self):
+        """A string / number for auto_apply should 400, not crash."""
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)
+            with running_inprocess_server(md) as ctx:
+                status, body = _request(
+                    "POST", _url(ctx, "/api/done"), body={"auto_apply": "yes"}
+                )
+        self.assertEqual(status, 400)
+        self.assertIn("auto_apply", body.get("error", ""))
 
 
 # ---------------------------------------------------------------------------

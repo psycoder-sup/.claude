@@ -16,6 +16,7 @@ const STATE = {
   comments: [],
   loadedMtime: 0,
   sidecarWarnings: [],
+  changedBlockIds: new Set(),  // anchorKey strings from changed_block_ids
 
   // From /api/health (one-shot at boot)
   filePath: "",
@@ -35,6 +36,8 @@ const STATE = {
   showSubmitModal: false,
   confirm: null,            // {title, body, danger, onConfirm}
   serverStopped: false,
+  autoApply: false,         // submit-modal checkbox: auto-apply on Done
+  doneAutoApply: false,     // sticky copy of autoApply at the moment Done succeeds
 };
 
 // Persistent DOM
@@ -154,6 +157,7 @@ const ICON = {
   warn:    (size = 14) => svgIcon(size, '<path d="M8 2l6.5 11.5h-13L8 2Z"/><path d="M8 7v3"/><circle cx="8" cy="12" r=".6" fill="currentColor"/>'),
   reload:  (size = 12) => svgIcon(size, '<path d="M3 8a5 5 0 0 1 8.5-3.5L13 6"/><path d="M13 3v3h-3"/><path d="M13 8a5 5 0 0 1-8.5 3.5L3 10"/><path d="M3 13v-3h3"/>'),
   check:   (size = 12) => svgIcon(size, '<path d="M3 8.5L6.5 12 13 4.5"/>', "2"),
+  edit:    (size = 12) => svgIcon(size, '<path d="M11.5 2.5l2 2L5 13H3v-2l8.5-8.5Z"/>', "1.5"),
 };
 function svgIcon(size, paths, w = "1.5") {
   const ns = "http://www.w3.org/2000/svg";
@@ -190,6 +194,7 @@ async function loadDocument() {
   STATE.comments = payload.comments || [];
   STATE.loadedMtime = payload.source_mtime || 0;
   STATE.sidecarWarnings = payload.sidecar_warnings || [];
+  STATE.changedBlockIds = new Set(payload.changed_block_ids || []);
   if (STATE.sidecarWarnings.length && !STATE.banner) {
     STATE.banner = { kind: "warn", text: "Sidecar warnings: " + STATE.sidecarWarnings.join("; ") };
   }
@@ -276,9 +281,12 @@ function applyDocLayout() {
 }
 
 function renderStopped() {
+  const auto = !!STATE.doneAutoApply;
   return el("div", { className: "stopped" },
     el("h1", null, "Server stopped"),
-    el("p", null, "You can close this tab. Returning to the terminal will show the next-turn prompt."),
+    auto
+      ? el("p", null, "Claude is now applying your comments to the source markdown. Return to the terminal to watch the changes land.")
+      : el("p", null, "You can close this tab. Returning to the terminal will show the next-turn prompt."),
   );
 }
 
@@ -316,12 +324,14 @@ function renderBlock(b) {
   const hasComments = cs.length > 0;
   const isActive = STATE.activeId === k || STATE.composerFor === k;
   const isComposing = STATE.composerFor === k;
+  const isRecentlyEdited = STATE.changedBlockIds.has(k);
 
   const cls =
     "block" +
     (hasComments ? " has-comments" : "") +
     (isActive ? " active-anchor" : "") +
-    (isComposing ? " composing" : "");
+    (isComposing ? " composing" : "") +
+    (isRecentlyEdited ? " recently-edited" : "");
 
   const gutter = el("div", { className: "gutter" },
     el("button", {
@@ -378,6 +388,36 @@ function renderPanelList() {
   }
   if (STATE.banner) {
     list.appendChild(renderBanner(STATE.banner));
+  }
+
+  // Recently edited by Claude (blocks differing from the pre-apply snapshot).
+  if (STATE.changedBlockIds.size > 0) {
+    const editedRows = [];
+    for (const b of STATE.blocks) {
+      const k = anchorKey(b.anchor);
+      if (!STATE.changedBlockIds.has(k)) continue;
+      editedRows.push(
+        el("div", {
+          className: "edited-row",
+          dataset: { groupId: k },
+          onclick: () => scrollToBlock(k),
+        },
+          el("div", { className: "crumb", text: `${prettyCrumb(b.anchor.heading_path)} · ${blockTypeLabel(b)}` }),
+          el("div", { className: "preview", text: blockPreview(b) }),
+        ),
+      );
+    }
+    if (editedRows.length > 0) {
+      list.appendChild(
+        el("div", { className: "recently-edited-section" },
+          el("div", { className: "recently-edited-head" },
+            ICON.edit(12),
+            el("span", { text: `Recently edited by Claude (${editedRows.length})` }),
+          ),
+          el("div", { className: "recently-edited-body" }, ...editedRows),
+        ),
+      );
+    }
   }
 
   // Orphans (comments whose anchor is not in current blocks)
@@ -875,6 +915,26 @@ function renderSubmitModal() {
   copyBtn     = el("button", { className: "btn", onclick: () => copy(nextPrompt, copyBtn, "Copy prompt") }, "Copy prompt");
   copyJsonBtn = el("button", { className: "btn ghost", onclick: () => copy(json, copyJsonBtn, "Copy sidecar JSON") }, "Copy sidecar JSON");
 
+  const autoApplyCheckbox = el("input", {
+    type: "checkbox",
+    id: "auto-apply-toggle",
+    checked: STATE.autoApply,
+    onchange: (e) => { STATE.autoApply = !!e.target.checked; },
+  });
+  const autoApplyRow = el("label", {
+    className: "auto-apply-row",
+    for: "auto-apply-toggle",
+  },
+    autoApplyCheckbox,
+    el("span", { className: "auto-apply-text" },
+      el("b", { text: "Auto-apply comments when I click Done" }),
+      el("span", {
+        className: "hint",
+        text: "Claude will read the sidecar and edit the source markdown directly. Leave unchecked to just stop the server and apply later yourself.",
+      }),
+    ),
+  );
+
   const veil = el("div", { className: "modal-veil", onclick: close },
     el("div", { className: "modal", onclick: (e) => e.stopPropagation() },
       el("div", { className: "h" },
@@ -889,6 +949,7 @@ function renderSubmitModal() {
         el("pre", { text: nextPrompt }),
         el("div", { className: "row" }, copyBtn, copyJsonBtn),
         el("pre", { style: { fontSize: "11.5px", maxHeight: "240px", overflow: "auto" }, text: json }),
+        autoApplyRow,
       ),
       el("div", { className: "foot" },
         el("button", { className: "btn", onclick: close }, "Keep reviewing"),
@@ -901,10 +962,13 @@ function renderSubmitModal() {
 
 async function clickDone() {
   STATE.saving = true;
+  // Snapshot the choice now so renderStopped reflects what we sent even if
+  // STATE.autoApply mutates later (shouldn't, but be defensive).
+  const sentAutoApply = !!STATE.autoApply;
   // Update modal in place if visible
   renderApp();
   try {
-    const { ok, payload } = await api("POST", "/api/done", {});
+    const { ok, payload } = await api("POST", "/api/done", { auto_apply: sentAutoApply });
     if (!ok) {
       const msg = (payload && payload.error) || "Server error";
       STATE.saveFailures.push({ commentId: null, message: msg });
@@ -912,11 +976,15 @@ async function clickDone() {
       renderApp();
       return;
     }
+    STATE.doneAutoApply = !!(payload && payload.auto_apply);
     STATE.serverStopped = true;
     STATE.showSubmitModal = false;
     renderApp();
   } catch (_) {
-    // Connection reset = expected when server shuts down
+    // Connection reset = expected when server shuts down. The browser never
+    // sees the response, but our request did go through — trust the value
+    // we sent.
+    STATE.doneAutoApply = sentAutoApply;
     STATE.serverStopped = true;
     STATE.showSubmitModal = false;
     renderApp();

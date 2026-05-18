@@ -8,6 +8,8 @@ This template is read by Claude in a follow-up turn to apply user-written commen
 
 ## What to do
 
+0. **Take a pre-apply snapshot.** Before any `Edit`, run Bash: `cp <MD_PATH> <MD_PATH>.review-snapshot.md`. This freezes the pre-edit state so the next review session can highlight which blocks you changed. If the source file doesn't exist, abort with an error instead.
+
 1. **Read the source markdown** at `<MD_PATH>` using the `Read` tool.
 
 2. **Read the sidecar** at `<MD_PATH>.comments.json`. Parse JSON. Confirm `version == 1`. If you see warnings or a `version` you don't recognize, surface them in your final summary but continue best-effort.

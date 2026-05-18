@@ -76,6 +76,7 @@ from server.sidecar import (
     read_sidecar,
     write_sidecar_atomic,
 )
+from server.snapshot import read_snapshot
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +162,30 @@ def _block_to_dict(b: Any) -> dict:
         "plain_text": b.plain_text,
         "heading_level": b.heading_level,
     }
+
+
+def _anchor_key(a: Any) -> str:
+    """Match the frontend's anchorKey() in server/static/app.js:71."""
+    return f"{a.heading_path}::{a.block_index_in_section}::{a.text_hash}"
+
+
+def _changed_block_keys(blocks: list, snapshot_text: Optional[str]) -> list[str]:
+    """Set-difference current blocks against snapshot blocks by text_hash.
+
+    A block is "changed" if its content hash isn't present in the snapshot
+    (covers modified, added, and (within their new home) re-split blocks).
+    Reordering alone — same content moved to a new heading — does not count.
+    Returns [] when no snapshot exists.
+    """
+    if snapshot_text is None:
+        return []
+    snapshot_blocks = parse_blocks(snapshot_text)
+    snapshot_hashes = {b.anchor.text_hash for b in snapshot_blocks}
+    return [
+        _anchor_key(b.anchor)
+        for b in blocks
+        if b.anchor.text_hash not in snapshot_hashes
+    ]
 
 
 def find_free_port(start: int, count: int) -> int:
@@ -389,11 +414,15 @@ def make_handler(ctx: AppContext):
                 source_mtime = os.path.getmtime(ctx.target_file)
             except OSError:
                 source_mtime = ctx.loaded_mtime
+            # Read snapshot fresh on each request so apply-step writes are
+            # picked up without a server restart.
+            snapshot_text = read_snapshot(ctx.target_file)
             payload = {
                 "blocks": [_block_to_dict(b) for b in ctx.blocks],
                 "comments": [asdict(c) for c in ctx.sidecar.comments],
                 "sidecar_warnings": list(ctx.sidecar_warnings),
                 "source_mtime": source_mtime,
+                "changed_block_ids": _changed_block_keys(ctx.blocks, snapshot_text),
             }
             self._send_json(200, payload)
 
@@ -548,6 +577,19 @@ def make_handler(ctx: AppContext):
         # ------------------------- /api/done ------------------------------
         def _handle_post_done(self) -> None:
             # Always allowed; this is the path that triggers drain.
+            # Parse the optional `auto_apply` flag from the request body. A
+            # missing body / missing field defaults to False and matches the
+            # pre-feature behavior (no auto-apply).
+            req = self._read_json_body()
+            if req is None:
+                self._send_json(400, {"error": "invalid json"})
+                return
+            auto_apply_raw = req.get("auto_apply", False) if isinstance(req, dict) else False
+            if not isinstance(auto_apply_raw, bool):
+                self._send_json(400, {"error": "auto_apply must be boolean"})
+                return
+            auto_apply = bool(auto_apply_raw)
+
             # Re-parse the source from disk in case mtime has advanced —
             # then compute orphans against that fresh tree.
             try:
@@ -574,13 +616,21 @@ def make_handler(ctx: AppContext):
                         "preview": c.anchor.get("preview", ""),
                     })
 
+            # Single-line marker for the launching skill to grep — printed
+            # *before* drain so it lands in $LOG even if shutdown is racing.
+            print(f"AUTO_APPLY: {1 if auto_apply else 0}", flush=True)
+
             # Kick off drain in a background thread so we can wait for it
             # via drain_event without blocking the response.
             t = threading.Thread(target=drain_and_stop, args=(ctx,), daemon=True)
             t.start()
 
             ok = ctx.drain_event.wait(timeout=DRAIN_TIMEOUT_SECONDS)
-            self._send_json(200, {"ok": bool(ok), "orphans": orphans})
+            self._send_json(200, {
+                "ok": bool(ok),
+                "orphans": orphans,
+                "auto_apply": auto_apply,
+            })
 
     return Handler
 

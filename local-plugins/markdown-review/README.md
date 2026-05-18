@@ -20,7 +20,10 @@ Example:
 
 The skill prints a `http://127.0.0.1:<port>` URL. Open it in a browser. Hover any block to reveal the comment icon; click it to add a comment. Multi-line comments. `Cmd/Ctrl+Enter` (or the "Add Comment" button) submits.
 
-When done, click "Done" in the UI (or `Ctrl-C` in the terminal). The skill then prints a copy-pasteable next-turn prompt that you can use in a follow-up turn to ask Claude to apply the comments.
+When you're ready, open **Submit & Done** in the panel footer. The modal has an **Auto-apply comments when I click Done** checkbox:
+
+- **Checked** — clicking Done returns control to the same Claude turn, which then reads the sidecar and applies your comments to the source markdown automatically.
+- **Unchecked** — clicking Done just stops the server; the skill prints a copy-pasteable next-turn prompt that you can paste back later to ask Claude to apply the comments.
 
 ## What it does
 
@@ -88,11 +91,21 @@ Atomic writes: the sidecar is written to `<file>.comments.json.tmp` and renamed 
 
 ## Handoff loop
 
-1. **Annotate** — `/markdown-review:annotate <path>`. The browser UI lets the user leave comments. Each comment is persisted to the sidecar immediately.
-2. **Done** — clicking "Done" in the UI (or `Ctrl-C` in the terminal) drains pending writes, shuts down the server, and prints a copy-pasteable next-turn prompt.
-3. **Apply** — in a separate turn, the user pastes the prompt (or asks "apply the comments"). Claude reads the source markdown + sidecar, resolves each anchor, applies the user's instruction via `Edit`, and marks each successfully applied comment as `applied: true` with `applied_at`. Orphaned comments are kept in the sidecar and surfaced in the user-facing summary.
+1. **Annotate** — `/markdown-review:annotate <path>`. The browser UI lets the user leave comments. Each comment is persisted to the sidecar immediately. The skill waits in-turn (up to ~9 minutes) for the user to click Done in the UI.
+2. **Done** — clicking "Done" in the UI (or `Ctrl-C` in the terminal) drains pending writes and shuts down the server. The Submit modal's auto-apply checkbox decides what happens next:
+   - **Auto-apply on** — the server reports `auto_apply=true` back to the skill, which signals Claude to apply the comments in this same turn.
+   - **Auto-apply off** (or server killed externally) — the skill prints the copy-pasteable next-turn prompt.
+3. **Apply** — Claude reads the source markdown + sidecar, resolves each anchor, applies the user's instruction via `Edit`, and marks each successfully applied comment as `applied: true` with `applied_at`. Orphaned comments are kept in the sidecar and surfaced in the user-facing summary. This happens either automatically (auto-apply path) or in a separate user-initiated turn (paste-prompt path).
+
+If the user takes longer than ~9 minutes to click Done, the skill exits with `OUTCOME: STILL_RUNNING` and tells the user how to resume — re-running `/markdown-review:annotate <same path>` reconnects to the same instance via the lockfile.
 
 The full apply-step instructions live at `skills/annotate/references/apply-comments-prompt.md`.
+
+## Pre-apply snapshot
+
+Right before Claude edits the source markdown, the apply step copies the file to `<file>.review-snapshot.md`. The server reads that snapshot on every `/api/document` request and ships a `changed_block_ids` list to the UI; blocks whose content differs from the snapshot get a green left-edge accent and are summarised in a **Recently edited by Claude** section in the right panel. The snapshot is overwritten on each subsequent apply, so the highlights always reflect *this* review cycle's edits — not cumulative drift.
+
+The snapshot is purely informational and safe to delete. Add `*.review-snapshot.md` to `.gitignore` if you'd rather not check it in.
 
 ## Offline & isolation
 

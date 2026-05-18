@@ -394,6 +394,44 @@ body {
 .orphans-body .orphan-row { padding: 4px 6px; }
 .orphans-body .orphan-row .id { font-family: var(--mono); font-size: 11px; color: var(--ink-mute); word-break: break-all; }
 
+/* "Recently edited by Claude" — blocks differing from the pre-apply snapshot. */
+.recently-edited-section {
+  background: oklch(0.97 0.04 145);
+  border: 1px solid oklch(0.86 0.07 145);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.recently-edited-head {
+  padding: 8px 12px; font-size: 11.5px; font-weight: 600;
+  color: oklch(0.36 0.12 145); display: flex; align-items: center; gap: 6px;
+}
+.recently-edited-body { padding: 0 6px 6px; display: flex; flex-direction: column; gap: 4px; }
+.recently-edited-body .edited-row {
+  padding: 6px 8px; border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid oklch(0.9 0.04 145);
+  cursor: pointer;
+}
+.recently-edited-body .edited-row:hover {
+  border-color: oklch(0.72 0.13 145);
+}
+.recently-edited-body .edited-row .crumb {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.recently-edited-body .edited-row .preview {
+  font-size: 12.5px; color: var(--ink-soft); margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Block-level accent for blocks whose content differs from the snapshot. */
+.block.recently-edited { box-shadow: inset 3px 0 0 oklch(0.65 0.14 145); }
+.block.recently-edited:hover { background: oklch(0.97 0.04 145 / 0.65); }
+.block.recently-edited.has-comments { background: oklch(0.96 0.05 200 / 0.4); }
+.block.recently-edited.active-anchor { box-shadow: inset 3px 0 0 var(--accent); }
+
 /* Banners */
 .banner {
   margin: 0 0 12px; padding: 10px 14px;
@@ -481,6 +519,28 @@ body {
   border-top: 1px solid var(--line);
   background: var(--bg-panel);
 }
+.auto-apply-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.auto-apply-row input[type="checkbox"] {
+  margin: 2px 0 0;
+  width: 16px; height: 16px;
+  accent-color: var(--accent-ink, currentColor);
+  flex-shrink: 0;
+}
+.auto-apply-row .auto-apply-text {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.auto-apply-row .auto-apply-text b { font-weight: 600; color: var(--ink); }
+.auto-apply-row .auto-apply-text .hint { color: var(--ink-soft); font-size: 12px; }
 
 /* Confirm dialog */
 .confirm {
