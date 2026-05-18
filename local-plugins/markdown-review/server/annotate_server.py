@@ -620,6 +620,24 @@ def make_handler(ctx: AppContext):
             # *before* drain so it lands in $LOG even if shutdown is racing.
             print(f"AUTO_APPLY: {1 if auto_apply else 0}", flush=True)
 
+            # File marker for the next-turn apply step to detect. The skill
+            # is detached, so the apply step (read in a follow-up Claude turn)
+            # is how auto-apply actually fires. Always clear any stale marker
+            # first so the flag reflects only the most-recent Done click.
+            marker_path = ctx.sidecar_path + ".auto_apply_pending"
+            try:
+                os.remove(marker_path)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass  # best-effort; not worth failing Done over
+            if auto_apply:
+                try:
+                    with open(marker_path, "w", encoding="utf-8") as f:
+                        f.write("")
+                except OSError:
+                    pass  # best-effort
+
             # Kick off drain in a background thread so we can wait for it
             # via drain_event without blocking the response.
             t = threading.Thread(target=drain_and_stop, args=(ctx,), daemon=True)

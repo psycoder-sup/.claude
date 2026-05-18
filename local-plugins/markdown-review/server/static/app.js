@@ -285,8 +285,8 @@ function renderStopped() {
   return el("div", { className: "stopped" },
     el("h1", null, "Server stopped"),
     auto
-      ? el("p", null, "Claude is now applying your comments to the source markdown. Return to the terminal to watch the changes land.")
-      : el("p", null, "You can close this tab. Returning to the terminal will show the next-turn prompt."),
+      ? el("p", null, "Auto-apply is queued. Return to Claude and say “apply” — your comments will be applied without an extra confirmation step.")
+      : el("p", null, "You can close this tab. Return to Claude when you're ready to apply, or paste the next-turn prompt from the Submit modal."),
   );
 }
 
@@ -930,7 +930,7 @@ function renderSubmitModal() {
       el("b", { text: "Auto-apply comments when I click Done" }),
       el("span", {
         className: "hint",
-        text: "Claude will read the sidecar and edit the source markdown directly. Leave unchecked to just stop the server and apply later yourself.",
+        text: "On your next turn, when you say “apply”, Claude will skip the confirmation prompt and edit the source markdown directly. Leave unchecked to be asked first.",
       }),
     ),
   );

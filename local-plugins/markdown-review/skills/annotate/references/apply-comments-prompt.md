@@ -1,6 +1,6 @@
 # Apply Comments Prompt
 
-This template is read by Claude in a follow-up turn to apply user-written comments from a sidecar JSON file to its source markdown. **Do not run this in the same turn as `/markdown-review:annotate`** — it is a separate, user-initiated turn (FR-31).
+This template is read by Claude in a follow-up turn to apply user-written comments from a sidecar JSON file to its source markdown. **Do not run this in the same turn as `/markdown-review:annotate`** — it is a separate, user-initiated turn.
 
 ## Inputs you receive
 - `<MD_PATH>` — absolute or relative path to the source markdown file (e.g. `docs/feature/foo/2026-05-06-foo-prd.md`).
@@ -8,7 +8,13 @@ This template is read by Claude in a follow-up turn to apply user-written commen
 
 ## What to do
 
-0. **Take a pre-apply snapshot.** Before any `Edit`, run Bash: `cp <MD_PATH> <MD_PATH>.review-snapshot.md`. This freezes the pre-edit state so the next review session can highlight which blocks you changed. If the source file doesn't exist, abort with an error instead.
+0. **Check the auto-apply marker, then take a snapshot.**
+
+   a. **Auto-apply marker.** Check whether `<MD_PATH>.comments.json.auto_apply_pending` exists (use Bash: `test -f <MD_PATH>.comments.json.auto_apply_pending && echo PRESENT || echo ABSENT`). The Submit modal in the review UI creates this marker when the user clicks Done with **Auto-apply** checked.
+      - **PRESENT** — the user has already given explicit consent. Proceed without asking for confirmation.
+      - **ABSENT** — ask the user "Apply the comments now?" and wait for their OK before touching the source markdown. (This preserves the pre-existing "explicit confirmation" behavior.)
+
+   b. **Pre-apply snapshot.** Once you've decided to proceed (either marker PRESENT or user said yes), run Bash: `cp <MD_PATH> <MD_PATH>.review-snapshot.md`. This freezes the pre-edit state so the next review session can highlight which blocks you changed. If the source file doesn't exist, abort with an error instead.
 
 1. **Read the source markdown** at `<MD_PATH>` using the `Read` tool.
 
@@ -27,12 +33,14 @@ This template is read by Claude in a follow-up turn to apply user-written commen
 
    d. **Save your work** — both the source markdown edit AND the sidecar update happen in lockstep per comment. Don't batch all sidecar updates to the end; if you crash mid-way, the sidecar should reflect what's already applied.
 
-4. **At the end, write a one-paragraph summary to the user:**
+4. **Clear the auto-apply marker (if it was set).** If you found the `<MD_PATH>.comments.json.auto_apply_pending` marker in step 0a, delete it now with Bash: `rm -f <MD_PATH>.comments.json.auto_apply_pending`. This prevents a stale marker from auto-firing on a future apply session.
+
+5. **At the end, write a one-paragraph summary to the user:**
    - How many comments were applied.
    - How many were orphaned (couldn't find a target block) — list each by anchor preview + body text.
    - Any sidecar warnings encountered.
 
-5. **Do NOT delete applied comments** from the sidecar. They stay in the file with `applied = true` so the user has a record of what changed and where.
+6. **Do NOT delete applied comments** from the sidecar. They stay in the file with `applied = true` so the user has a record of what changed and where.
 
 ## Important rules
 

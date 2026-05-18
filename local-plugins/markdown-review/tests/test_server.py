@@ -534,20 +534,41 @@ class TestDoneDrains(unittest.TestCase):
         self.assertIn("AUTO_APPLY: 0", buf.getvalue())
 
     def test_done_with_auto_apply_true(self):
-        """Body {auto_apply: true} → response echoes True and AUTO_APPLY: 1
-        is printed for the launching skill to grep."""
+        """Body {auto_apply: true} → response echoes True, AUTO_APPLY: 1
+        printed, and the .auto_apply_pending marker file appears next to the
+        sidecar for the next-turn apply step to detect."""
         buf = io.StringIO()
         with tempfile.TemporaryDirectory() as d:
             md = _make_md_file(d)
+            marker = md + ".comments.json.auto_apply_pending"
             with running_inprocess_server(md) as ctx:
                 with contextlib.redirect_stdout(buf):
                     status, body = _request(
                         "POST", _url(ctx, "/api/done"), body={"auto_apply": True}
                     )
+            self.assertTrue(os.path.exists(marker), f"marker missing: {marker}")
         self.assertEqual(status, 200)
         self.assertTrue(body["ok"])
         self.assertEqual(body["auto_apply"], True)
         self.assertIn("AUTO_APPLY: 1", buf.getvalue())
+
+    def test_done_auto_apply_false_clears_stale_marker(self):
+        """A leftover .auto_apply_pending from a previous Done click must be
+        cleared when Done is now clicked without auto_apply."""
+        with tempfile.TemporaryDirectory() as d:
+            md = _make_md_file(d)
+            marker = md + ".comments.json.auto_apply_pending"
+            # Plant a stale marker.
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write("")
+            self.assertTrue(os.path.exists(marker))
+            with running_inprocess_server(md) as ctx:
+                status, body = _request(
+                    "POST", _url(ctx, "/api/done"), body={"auto_apply": False}
+                )
+            self.assertFalse(os.path.exists(marker), "stale marker not cleared")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["auto_apply"], False)
 
     def test_done_rejects_non_bool_auto_apply(self):
         """A string / number for auto_apply should 400, not crash."""

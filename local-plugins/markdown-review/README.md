@@ -18,12 +18,12 @@ Example:
 /markdown-review:annotate docs/feature/foo/2026-05-06-foo-prd.md
 ```
 
-The skill prints a `http://127.0.0.1:<port>` URL. Open it in a browser. Hover any block to reveal the comment icon; click it to add a comment. Multi-line comments. `Cmd/Ctrl+Enter` (or the "Add Comment" button) submits.
+The skill prints a `http://127.0.0.1:<port>` URL **and auto-opens it in your default browser** (via `open` / `xdg-open` / `wslview`). The Claude turn ends immediately — the server runs detached in the background. Hover any block to reveal the comment icon; click it to add a comment. Multi-line comments. `Cmd/Ctrl+Enter` (or the "Add Comment" button) submits.
 
-When you're ready, open **Submit & Done** in the panel footer. The modal has an **Auto-apply comments when I click Done** checkbox:
+When you're ready, open **Submit & Done** in the panel footer. The modal has an **Auto-apply comments when I click Done** checkbox that controls the next turn:
 
-- **Checked** — clicking Done returns control to the same Claude turn, which then reads the sidecar and applies your comments to the source markdown automatically.
-- **Unchecked** — clicking Done just stops the server; the skill prints a copy-pasteable next-turn prompt that you can paste back later to ask Claude to apply the comments.
+- **Checked** — clicking Done writes a `<file>.comments.json.auto_apply_pending` marker next to the sidecar. On your next turn, when you say "apply", Claude detects the marker and applies your comments without an extra confirmation prompt.
+- **Unchecked** — clicking Done just stops the server. The next time you ask Claude to apply, you'll be asked for explicit confirmation before any edits happen.
 
 ## What it does
 
@@ -91,13 +91,11 @@ Atomic writes: the sidecar is written to `<file>.comments.json.tmp` and renamed 
 
 ## Handoff loop
 
-1. **Annotate** — `/markdown-review:annotate <path>`. The browser UI lets the user leave comments. Each comment is persisted to the sidecar immediately. The skill waits in-turn (up to ~9 minutes) for the user to click Done in the UI.
-2. **Done** — clicking "Done" in the UI (or `Ctrl-C` in the terminal) drains pending writes and shuts down the server. The Submit modal's auto-apply checkbox decides what happens next:
-   - **Auto-apply on** — the server reports `auto_apply=true` back to the skill, which signals Claude to apply the comments in this same turn.
-   - **Auto-apply off** (or server killed externally) — the skill prints the copy-pasteable next-turn prompt.
-3. **Apply** — Claude reads the source markdown + sidecar, resolves each anchor, applies the user's instruction via `Edit`, and marks each successfully applied comment as `applied: true` with `applied_at`. Orphaned comments are kept in the sidecar and surfaced in the user-facing summary. This happens either automatically (auto-apply path) or in a separate user-initiated turn (paste-prompt path).
-
-If the user takes longer than ~9 minutes to click Done, the skill exits with `OUTCOME: STILL_RUNNING` and tells the user how to resume — re-running `/markdown-review:annotate <same path>` reconnects to the same instance via the lockfile.
+1. **Annotate** — `/markdown-review:annotate <path>`. The skill launches the server, auto-opens the URL in your browser, and ends the turn. The python process is detached (`nohup` + `disown`) and survives the skill turn.
+2. **Done** — clicking "Done" in the UI (or `Ctrl-C` in the terminal) drains pending writes and shuts down the server. The Submit modal's auto-apply checkbox decides what next-turn apply looks like:
+   - **Auto-apply on** — the server writes `<file>.comments.json.auto_apply_pending` next to the sidecar before shutting down.
+   - **Auto-apply off** (or server killed externally) — no marker is written (any stale marker is cleared).
+3. **Apply** — in a new turn, ask Claude to "apply". Claude reads `skills/annotate/references/apply-comments-prompt.md`, checks for the marker, and either proceeds without asking (marker present) or asks you for explicit confirmation first (marker absent). It then snapshots the source, edits per each unapplied comment via `Edit`, marks each successfully applied comment as `applied: true` with `applied_at`, and clears the marker.
 
 The full apply-step instructions live at `skills/annotate/references/apply-comments-prompt.md`.
 
@@ -117,4 +115,4 @@ When invoked while another instance of this plugin is already running, the secon
 
 ## Status
 
-v0.1.0 — feature complete for v1; under initial use.
+v0.2.0 — detached skill + auto-open browser, auto-apply marker for next-turn apply, "Recently edited by Claude" highlights from a pre-apply snapshot.
