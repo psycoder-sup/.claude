@@ -51,20 +51,16 @@
           {
             "type": "command",
             "command": "jq -r '\"SESSION_ID: \" + .session_id'"
-          },
-          {
-            "type": "command",
-            "command": "jq -r '.session_id' | xargs -I{} baragi session start --agent=claude-code --session-id='{}'"
           }
         ]
-      }
-    ],
-    "SessionEnd": [
+      },
       {
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.session_id' | xargs -I{} baragi session close --session-id='{}'"
+            "command": "\"/usr/local/bin/node\" \"/Users/psycoder/.claude/hooks/caveman-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading caveman mode..."
           }
         ]
       }
@@ -100,6 +96,18 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/usr/local/bin/node\" \"/Users/psycoder/.claude/hooks/caveman-mode-tracker.js\"",
+            "timeout": 5,
+            "statusMessage": "Tracking caveman mode..."
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -107,14 +115,15 @@
     "command": "bash ~/.claude/statusline/statusline-command.sh"
   },
   "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": false,
-    "context7@claude-plugins-official": true,
+    "context7@claude-plugins-official": false,
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": false,
-    "workflow@local": true,
-    "vercel@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true
+    "workflow@local": false,
+    "vercel@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "caveman@caveman": true
   },
   "extraKnownMarketplaces": {
     "local": {
@@ -127,6 +136,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
       }
     }
   },
