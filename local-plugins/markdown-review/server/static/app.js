@@ -1071,14 +1071,25 @@ async function reloadDoc() {
   await loadDocument();
 }
 
-// ---------- mtime poll (lazy) ----------
+// ---------- mtime poll ----------
+// Auto-reload when the source file changes on disk, unless the user has
+// unsaved in-flight UI work (composer, edit, modal, confirm) — in that case
+// fall back to the existing banner so we never drop a draft.
 async function checkMtime() {
   if (STATE.sourceChanged || STATE.serverStopped) return;
   const { ok, payload } = await api("GET", "/api/document/changed");
-  if (ok && payload && payload.changed) {
+  if (!ok || !payload || !payload.changed) return;
+  const inFlight =
+    STATE.composerFor ||
+    STATE.editingCommentId ||
+    STATE.showSubmitModal ||
+    STATE.confirm;
+  if (inFlight) {
     STATE.sourceChanged = true;
     renderApp();
+    return;
   }
+  await loadDocument();
 }
 
 // ---------- Boot ----------
@@ -1086,10 +1097,8 @@ async function init() {
   rootEl = document.getElementById("root");
   await loadHealth();
   await loadDocument();
-  // Lazy mtime poll: once on first interaction, then every 30s
-  document.addEventListener("mousemove", checkMtime, { once: true });
-  document.addEventListener("focusin", checkMtime, { once: true });
-  setInterval(checkMtime, 30000);
+  // Poll the source mtime every 2s for live updates from disk edits.
+  setInterval(checkMtime, 2000);
 
   // Re-check doc/composer fit on viewport changes.
   window.addEventListener("resize", applyDocLayout);

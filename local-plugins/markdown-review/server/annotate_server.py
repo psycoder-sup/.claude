@@ -140,6 +140,32 @@ class AppContext:
         self.blocks = parse_blocks(self.markdown_source)
         self.loaded_mtime = os.path.getmtime(self.target_file)
 
+    def reload_source_if_stale(self) -> None:
+        """Re-parse source from disk if its mtime has advanced past loaded_mtime.
+
+        Serialized via ``state_lock`` so concurrent ``/api/document`` GETs don't
+        race on ``blocks``/``markdown_source`` mutation. Disk errors are
+        swallowed — callers fall back to the previously-loaded blocks.
+        """
+        try:
+            current = os.path.getmtime(self.target_file)
+        except OSError:
+            return
+        if current <= self.loaded_mtime:
+            return
+        with self.state_lock:
+            # Re-check inside the lock — another thread may have just reloaded.
+            try:
+                current = os.path.getmtime(self.target_file)
+            except OSError:
+                return
+            if current <= self.loaded_mtime:
+                return
+            try:
+                self.reload_source()
+            except OSError:
+                pass
+
     def reload_sidecar(self) -> None:
         sc, warnings = read_sidecar(self.sidecar_path)
         self.sidecar = sc
@@ -410,6 +436,9 @@ def make_handler(ctx: AppContext):
 
         # ----------------------- /api/document ---------------------------
         def _handle_get_document(self) -> None:
+            # Re-parse source if the file mtime has advanced — keeps the
+            # in-memory block tree live when the source is edited on disk.
+            ctx.reload_source_if_stale()
             try:
                 source_mtime = os.path.getmtime(ctx.target_file)
             except OSError:
