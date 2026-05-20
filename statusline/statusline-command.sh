@@ -24,6 +24,7 @@ resets_5h=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.resets_at // em
 util_7d=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' | cut -d'.' -f1)
 resets_7d=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
+ESC=$'\033'
 RESET=$'\033[0m'
 DIM=$'\033[0;90m'
 WHITE=$'\033[1;37m'
@@ -32,6 +33,11 @@ CYAN=$'\033[38;5;44m'
 # Powerline round caps
 PL_L=$'\xee\x82\xb6'
 PL_R=$'\xee\x82\xb4'
+
+# Visible (display-column) length of a string, stripping SGR escapes.
+visible_len() {
+  printf '%s' "$1" | awk '{ gsub(/\033\[[0-9;]*m/, ""); print length }'
+}
 
 # Pill: make_pill <cap_color_code> <bg_color_code> <fg_color_code> <text>
 make_pill() {
@@ -160,14 +166,86 @@ line1=""
 line2=""
 separator="${DIM} │ ${RESET}"
 
-# Line 1: pill badges, space separated
-for part in "$session_text" "$model_text" "$dir_text" "$branch_text"; do
-  [ -n "$part" ] && line1="${line1:+$line1 }$part"
+line1_pills=("$session_text" "$model_text" "$dir_text" "$branch_text")
+line1_pill_lens=()
+for p in "${line1_pills[@]}"; do
+  if [ -n "$p" ]; then
+    line1_pill_lens+=( "$(visible_len "$p")" )
+  else
+    line1_pill_lens+=( 0 )
+  fi
 done
 
-# Line 2: context | 5h usage | 7d usage
+build_line1() {
+  local start=$1 i p
+  line1=""
+  for ((i=start; i<${#line1_pills[@]}; i++)); do
+    p="${line1_pills[$i]}"
+    [ -n "$p" ] && line1="${line1:+$line1 }$p"
+  done
+}
+build_line1 0
+
 for part in "$context_text" "$usage_5h_text" "$usage_7d_text"; do
   [ -n "$part" ] && line2="${line2:+$line2$separator}$part"
 done
+
+# Delegate caveman badge rendering (flag read, whitelist, savings suffix) to
+# the canonical hook so security hardening lives in one place.
+caveman_text=""
+caveman_hook="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/caveman-statusline.sh"
+[ -f "$caveman_hook" ] && caveman_text=$(bash "$caveman_hook" 2>/dev/null)
+
+# Statusline subprocess has no TTY, so COLUMNS/tput/stty </dev/tty all fail;
+# derive width from parent (claude CLI) process's controlling TTY.
+detect_cols() {
+  if [ -n "$COLUMNS" ] && [ "$COLUMNS" -gt 0 ] 2>/dev/null; then
+    echo "$COLUMNS"; return
+  fi
+  local ttydev c
+  ttydev=$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')
+  if [ -n "$ttydev" ] && [ "$ttydev" != "?" ] && [ -e "/dev/$ttydev" ]; then
+    c=$(stty -f "/dev/$ttydev" size 2>/dev/null | awk '{print $2}')
+    if [ -n "$c" ] && [ "$c" -gt 0 ] 2>/dev/null; then
+      echo "$c"; return
+    fi
+  fi
+  c=$(tput cols 2>/dev/null)
+  if [ -n "$c" ] && [ "$c" -gt 0 ] 2>/dev/null; then
+    echo "$c"; return
+  fi
+  echo 120
+}
+
+if [ -n "$caveman_text" ]; then
+  cols=$(detect_cols)
+  cv_len=$(visible_len "$caveman_text")
+  budget=$((cols - cv_len - 1))
+  [ "$budget" -lt 0 ] && budget=0
+
+  # Drop leading pills (session → model → dir → branch) until line1 fits.
+  # Caveman badge always survives.
+  start=0
+  l1_len=0
+  while [ "$start" -lt "${#line1_pills[@]}" ]; do
+    l1_len=0
+    count=0
+    for ((i=start; i<${#line1_pills[@]}; i++)); do
+      if [ -n "${line1_pills[$i]}" ]; then
+        l1_len=$((l1_len + line1_pill_lens[i]))
+        count=$((count + 1))
+      fi
+    done
+    [ "$count" -gt 1 ] && l1_len=$((l1_len + count - 1))
+    [ "$l1_len" -le "$budget" ] && break
+    start=$((start + 1))
+  done
+  build_line1 "$start"
+
+  pad=$((budget - l1_len))
+  [ "$pad" -lt 1 ] && pad=1
+  spaces=$(printf '%*s' "$pad" "")
+  line1="${line1}${spaces}${caveman_text}"
+fi
 
 printf "%s\n%s\n" "$line1" "$line2"
