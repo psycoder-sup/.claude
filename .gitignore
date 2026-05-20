@@ -35,4 +35,5 @@ __pycache__/
 .last-cleanup
 .playwright-mcp/
 .caveman-*
+*.bak
 
