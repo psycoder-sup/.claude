@@ -21,7 +21,7 @@ Execute these steps sequentially. Stop and report on any failure.
 ## Step 2: Commit & Push
 
 ```
-/git-skill commit push
+git add -A && git commit && git push
 ```
 
 ## Step 3: Prune Per-Feature Agent Memory
