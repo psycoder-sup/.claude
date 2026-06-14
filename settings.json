@@ -121,8 +121,7 @@
     "clangd-lsp@claude-plugins-official": false,
     "workflow@local": false,
     "vercel@claude-plugins-official": false,
-    "code-review@claude-plugins-official": false,
-    "caveman@caveman": true
+    "code-review@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "local": {
@@ -163,5 +162,6 @@
   "preferredNotifChannel": "notifications_disabled",
   "autoCompactEnabled": false,
   "teammateMode": "in-process",
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "model": "opus[1m]"
 }

@@ -37,3 +37,7 @@ __pycache__/
 .caveman-*
 *.bak
 
+chrome/
+policy-limits.json
+.last-update-result.json
+
