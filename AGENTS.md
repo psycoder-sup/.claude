@@ -4,6 +4,3 @@
 ## Subagents
 - Subagents can't spawn subagents. The `Agent`/`Task` tool isn't available inside one and can't be enabled.
 - Never tell a subagent to "use X agent" — give the underlying command instead. Main session dispatches all agents.
-# graphify
-- **graphify** (`~/.Codex/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
