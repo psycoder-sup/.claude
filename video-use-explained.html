@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>video-use — the skill, explained</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      colors: { accent: '#ff6b35' }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  .card { transition: transform .15s ease, box-shadow .15s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+  ::selection { background: #ff6b35; color: white; }
+</style>
+</head>
+<body class="bg-stone-200 flex justify-center py-10 font-sans text-stone-800">
+<div class="max-w-[1100px] w-full bg-stone-50 border border-stone-300 shadow-sm">
+
+  <!-- ============ HEADER ============ -->
+  <div class="bg-stone-900 px-10 py-8">
+    <div class="flex items-end justify-between flex-wrap gap-4">
+      <div>
+        <div class="text-[11px] font-bold uppercase tracking-[3px] text-accent mb-2">Claude Code Skill</div>
+        <div class="text-[40px] font-extrabold text-white tracking-tight leading-none">video&#8209;use</div>
+        <div class="text-stone-400 text-[15px] mt-3 max-w-[640px] leading-relaxed">
+          Edit any video by conversation. Transcribe, cut, color&nbsp;grade, generate overlay
+          animations, burn subtitles &mdash; for talking heads, montages, tutorials, travel,
+          interviews. No presets, no menus.
+        </div>
+      </div>
+      <div class="text-right text-stone-500 text-[11px] font-mono leading-relaxed">
+        ~/.claude/skills/video-use<br>
+        SKILL.md
+      </div>
+    </div>
+    <!-- the loop, as a tagline -->
+    <div class="mt-6 flex items-center gap-2 flex-wrap font-mono text-[12px]">
+      <span class="px-3 py-1 rounded-full bg-stone-800 text-stone-300">Ask</span>
+      <span class="text-stone-600">&rarr;</span>
+      <span class="px-3 py-1 rounded-full bg-stone-800 text-stone-300">Confirm</span>
+      <span class="text-stone-600">&rarr;</span>
+      <span class="px-3 py-1 rounded-full bg-stone-800 text-stone-300">Execute</span>
+      <span class="text-stone-600">&rarr;</span>
+      <span class="px-3 py-1 rounded-full bg-stone-800 text-stone-300">Iterate</span>
+      <span class="text-stone-600">&rarr;</span>
+      <span class="px-3 py-1 rounded-full bg-accent text-white font-bold">Persist</span>
+    </div>
+  </div>
+
+  <!-- ============ THE BIG IDEA ============ -->
+  <div class="bg-stone-800 px-10 py-4 border-b border-stone-700">
+    <div class="text-stone-300 text-[14px] text-center leading-relaxed">
+      The LLM <span class="text-stone-500 line-through">watches</span> the video. It
+      <span class="text-white font-bold">reads</span> it &mdash; a
+      <span class="text-white font-bold">text transcript</span> from audio is always loaded;
+      <span class="text-accent font-bold">visual composites</span> are pulled only at decision points.
+    </div>
+  </div>
+
+  <!-- ============ WHY IT WORKS ============ -->
+  <div class="px-10 pt-8 pb-2">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">Why it works</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="card bg-white border border-stone-200 rounded-xl p-5">
+        <div class="text-[11px] font-mono font-bold text-stone-400 mb-1">LAYER 1 &mdash; always loaded</div>
+        <div class="text-[17px] font-extrabold text-stone-900 mb-2">Audio transcript</div>
+        <p class="text-[13px] text-stone-600 leading-relaxed">
+          One ElevenLabs <span class="font-semibold text-stone-800">Scribe</span> call per source &rarr;
+          word-level timestamps, speaker diarization, and audio events like
+          <span class="font-mono text-accent">(laughter)</span>. Every take packs into a single
+          ~12&nbsp;KB <span class="font-mono">takes_packed.md</span> &mdash; the primary reading view.
+        </p>
+      </div>
+
+      <div class="card bg-white border border-stone-200 rounded-xl p-5">
+        <div class="text-[11px] font-mono font-bold text-stone-400 mb-1">LAYER 2 &mdash; on demand</div>
+        <div class="text-[17px] font-extrabold text-stone-900 mb-2">Visual composite</div>
+        <p class="text-[13px] text-stone-600 leading-relaxed">
+          <span class="font-mono">timeline_view</span> renders a filmstrip + waveform + word-label PNG
+          for any range. Called <em>only</em> at decision points &mdash; ambiguous pauses, retake
+          comparisons, cut-point sanity checks. Never a scan tool.
+        </p>
+      </div>
+    </div>
+
+    <!-- token math -->
+    <div class="mt-4 bg-stone-900 rounded-xl px-6 py-4 flex items-center justify-around text-center flex-wrap gap-4">
+      <div>
+        <div class="text-[11px] uppercase tracking-wide text-stone-500 font-mono">Naive (frame dump)</div>
+        <div class="text-[22px] font-extrabold text-stone-400 line-through">45M tokens</div>
+        <div class="text-[10px] text-stone-600 font-mono">30,000 frames &times; 1,500 tokens</div>
+      </div>
+      <div class="text-stone-600 text-2xl font-light">&rarr;</div>
+      <div>
+        <div class="text-[11px] uppercase tracking-wide text-accent font-mono">video-use</div>
+        <div class="text-[22px] font-extrabold text-white">12&nbsp;KB + a few PNGs</div>
+        <div class="text-[10px] text-stone-500 font-mono">structured signal, not pixels</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PIPELINE ============ -->
+  <div class="px-10 pt-8 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">The pipeline</div>
+    <svg viewBox="0 0 1020 100" class="w-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#78716c"/></marker>
+        <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/></marker>
+      </defs>
+
+      <rect x="0" y="15" width="135" height="55" rx="8" fill="white" stroke="#d6d3d1" stroke-width="1.5"/>
+      <text x="67" y="40" text-anchor="middle" font-family="Inter" font-size="12" font-weight="800" fill="#1c1917">Transcribe</text>
+      <text x="67" y="55" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a8a29e">Scribe, parallel</text>
+      <line x1="140" y1="42" x2="166" y2="42" stroke="#78716c" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <rect x="171" y="15" width="115" height="55" rx="8" fill="white" stroke="#d6d3d1" stroke-width="1.5"/>
+      <text x="228" y="40" text-anchor="middle" font-family="Inter" font-size="12" font-weight="800" fill="#1c1917">Pack</text>
+      <text x="228" y="55" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a8a29e">phrase-level .md</text>
+      <line x1="291" y1="42" x2="317" y2="42" stroke="#78716c" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <rect x="322" y="5" width="170" height="75" rx="10" fill="#1c1917"/>
+      <text x="407" y="32" text-anchor="middle" font-family="Inter" font-size="13" font-weight="900" fill="white">LLM Reasons</text>
+      <text x="407" y="50" text-anchor="middle" font-family="Inter" font-size="9" fill="#a8a29e">reads transcript</text>
+      <text x="407" y="64" text-anchor="middle" font-family="Inter" font-size="9" fill="#ff6b35" font-weight="600">timeline_view at decision points</text>
+      <line x1="497" y1="42" x2="523" y2="42" stroke="#059669" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+      <rect x="528" y="15" width="95" height="55" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="1.5"/>
+      <text x="575" y="40" text-anchor="middle" font-family="Inter" font-size="12" font-weight="800" fill="#059669">EDL</text>
+      <text x="575" y="55" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#059669">.json</text>
+      <line x1="628" y1="42" x2="654" y2="42" stroke="#78716c" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <rect x="659" y="15" width="115" height="55" rx="8" fill="white" stroke="#d6d3d1" stroke-width="1.5"/>
+      <text x="716" y="40" text-anchor="middle" font-family="Inter" font-size="12" font-weight="800" fill="#1c1917">Render</text>
+      <text x="716" y="55" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a8a29e">ffmpeg pipeline</text>
+      <line x1="779" y1="42" x2="805" y2="42" stroke="#78716c" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <rect x="810" y="5" width="145" height="75" rx="10" fill="#ff6b35"/>
+      <text x="882" y="32" text-anchor="middle" font-family="Inter" font-size="13" font-weight="900" fill="white">Self-Eval</text>
+      <text x="882" y="50" text-anchor="middle" font-family="Inter" font-size="9" fill="rgba(255,255,255,0.85)">timeline_view on output</text>
+      <text x="882" y="64" text-anchor="middle" font-family="Inter" font-size="9" fill="rgba(255,255,255,0.85)">at every cut point</text>
+
+      <path d="M 882 82 L 882 96 L 407 96 L 407 82" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="645" y="94" text-anchor="middle" font-family="Inter" font-size="9" font-weight="700" fill="#dc2626">issue? fix &rarr; re-render (max 3)</text>
+    </svg>
+  </div>
+
+  <!-- ============ THE PROCESS ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">The session, step by step</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- step -->
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">1</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Inventory</div><div class="text-[12px] text-stone-600 leading-snug">ffprobe every source, transcribe the directory, pack into <span class="font-mono">takes_packed.md</span>, sample a timeline_view or two.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">2</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Pre-scan for problems</div><div class="text-[12px] text-stone-600 leading-snug">One pass to note verbal slips, mis-speaks, phrasings to avoid. Feeds the editor brief.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">3</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Converse</div><div class="text-[12px] text-stone-600 leading-snug">Describe what you see, ask questions <em>shaped by the material</em>. No fixed checklist &mdash; the right questions differ every time.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-accent text-white font-mono text-[13px] font-bold flex items-center justify-center">4</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Propose strategy <span class="text-accent">&middot; wait</span></div><div class="text-[12px] text-stone-600 leading-snug">4&ndash;8 sentences: shape, take choices, cut direction, animation + grade plan, length estimate. <strong>Wait for confirmation.</strong></div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">5</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Execute</div><div class="text-[12px] text-stone-600 leading-snug">Produce <span class="font-mono">edl.json</span>, drill into timeline_view at ambiguous moments, build animations in parallel sub-agents, grade per-segment, compose with render.py.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">6</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Preview</div><div class="text-[12px] text-stone-600 leading-snug"><span class="font-mono">render.py --preview</span> &mdash; fast 720p pass.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-accent text-white font-mono text-[13px] font-bold flex items-center justify-center">7</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Self-eval <span class="text-accent">&middot; before showing</span></div><div class="text-[12px] text-stone-600 leading-snug">timeline_view on the <em>rendered output</em> at every cut: discontinuity, audio pop, hidden subtitle, misaligned overlay. Fix &rarr; re-render, cap 3 passes.</div></div>
+      </div>
+      <div class="flex gap-3 bg-white border border-stone-200 rounded-lg p-4">
+        <div class="shrink-0 w-7 h-7 rounded-full bg-stone-900 text-white font-mono text-[13px] font-bold flex items-center justify-center">8</div>
+        <div><div class="font-bold text-[14px] text-stone-900">Iterate + persist</div><div class="text-[12px] text-stone-600 leading-snug">Natural-language feedback, re-plan, re-render. Final on confirmation. Append the session to <span class="font-mono">project.md</span>. Never re-transcribe.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HELPERS ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">The helpers <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; everything is ffmpeg + PIL underneath</span></div>
+    <div class="bg-stone-900 rounded-xl overflow-hidden border border-stone-700 font-mono text-[12.5px]">
+      <div class="bg-stone-800 px-5 py-2 text-[10px] uppercase tracking-wide text-stone-500 border-b border-stone-700">helpers/</div>
+      <div class="divide-y divide-stone-800">
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">transcribe.py</span><span class="text-stone-400">single-file Scribe call. <span class="text-stone-500">Cached.</span></span></div>
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">transcribe_batch.py</span><span class="text-stone-400">4-worker parallel transcription for multi-take.</span></div>
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">pack_transcripts.py</span><span class="text-stone-400">transcripts/*.json &rarr; <span class="text-stone-300">takes_packed.md</span> (break on silence &ge; 0.5s).</span></div>
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">timeline_view.py</span><span class="text-stone-400">filmstrip + waveform PNG. <span class="text-stone-500">Decision-point tool, not a scanner.</span></span></div>
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">render.py</span><span class="text-stone-400">extract &rarr; concat &rarr; overlays &rarr; subtitles LAST. <span class="text-stone-500">--preview, --build-subtitles.</span></span></div>
+        <div class="px-5 py-3 flex gap-4"><span class="text-accent font-semibold w-[185px] shrink-0">grade.py</span><span class="text-stone-400">ffmpeg filter-chain grade. Presets + <span class="text-stone-300">--filter '&lt;raw&gt;'</span>.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DIRECTORY LAYOUT ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">Where everything lands <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; all outputs in &lt;videos_dir&gt;/edit/, sources untouched</span></div>
+    <div class="bg-white border border-stone-200 rounded-xl p-5 font-mono text-[12px] text-stone-700 leading-relaxed">
+<pre class="whitespace-pre overflow-x-auto">&lt;videos_dir&gt;/
+├── <span class="text-stone-400">&lt;source files, untouched&gt;</span>
+└── edit/
+    ├── <span class="text-accent">project.md</span>               <span class="text-stone-400">memory; appended every session</span>
+    ├── <span class="text-accent">takes_packed.md</span>          <span class="text-stone-400">the LLM's primary reading view</span>
+    ├── <span class="text-accent">edl.json</span>                 <span class="text-stone-400">cut decisions</span>
+    ├── transcripts/<span class="text-stone-400">&lt;name&gt;.json</span>  <span class="text-stone-400">cached raw Scribe JSON</span>
+    ├── animations/slot_&lt;id&gt;/    <span class="text-stone-400">per-animation source + render</span>
+    ├── clips_graded/            <span class="text-stone-400">per-segment extracts + grade + fades</span>
+    ├── master.srt               <span class="text-stone-400">output-timeline subtitles</span>
+    ├── verify/                  <span class="text-stone-400">debug frames / timeline PNGs</span>
+    ├── preview.mp4
+    └── <span class="text-accent">final.mp4</span></pre>
+    </div>
+  </div>
+
+  <!-- ============ HARD RULES ============ -->
+  <div class="px-10 pb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400">The 12 Hard Rules</div>
+      <div class="h-px flex-1 bg-stone-200"></div>
+      <div class="text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-200 rounded px-2 py-0.5">non-negotiable</div>
+    </div>
+    <p class="text-[13px] text-stone-600 mb-4 leading-relaxed">
+      These aren't taste &mdash; they're <span class="font-semibold text-stone-800">production correctness</span>.
+      Deviation produces silent failures or broken output. Everything <em>else</em> in the skill is artistic freedom.
+    </p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">01</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Subtitles applied LAST</strong> in the filter chain, after every overlay.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">02</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Per-segment extract &rarr; lossless <span class="font-mono">-c copy</span> concat</strong>, never single-pass filtergraph.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">03</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>30ms audio fades at every segment boundary</strong> &mdash; otherwise audible pops.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">04</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Overlays use <span class="font-mono">setpts=PTS-STARTPTS+T/TB</span></strong> so frame 0 lands at the window start.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">05</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Master SRT uses output-timeline offsets</strong> &mdash; else captions misalign after concat.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">06</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Never cut inside a word.</strong> Snap every edge to a transcript word boundary.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">07</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Pad every cut edge</strong> (30&ndash;200ms) to absorb Scribe's 50&ndash;100ms drift.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">08</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Word-level verbatim ASR only.</strong> Never SRT/phrase mode, never normalized fillers.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">09</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Cache transcripts per source.</strong> Re-transcribe only if the source file changed.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">10</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Parallel sub-agents for multiple animations.</strong> Spawn N at once, never sequential.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">11</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>Strategy confirmation before execution.</strong> Never touch the cut until the plan is approved.</span></div>
+      <div class="flex gap-3 bg-white border-l-[3px] border-red-400 border-y border-r border-stone-200 rounded-r-lg p-3"><span class="font-mono font-bold text-red-500 text-[13px]">12</span><span class="text-[12.5px] text-stone-700 leading-snug"><strong>All session outputs in <span class="font-mono">&lt;videos_dir&gt;/edit/</span></strong>. Never write inside the project dir.</span></div>
+    </div>
+  </div>
+
+  <!-- ============ CUT CRAFT ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">Cut craft <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; audio-first, every cut must work on both tracks</span></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white border border-stone-200 rounded-xl p-5">
+        <div class="font-bold text-[14px] text-stone-900 mb-2">Where cuts come from</div>
+        <ul class="text-[13px] text-stone-600 space-y-1.5 leading-snug">
+          <li>&bull; Candidates from <strong>word boundaries</strong> and <strong>silence gaps</strong>.</li>
+          <li>&bull; Silences <strong>&ge; 400ms</strong> = cleanest cut targets.</li>
+          <li>&bull; 150&ndash;400ms phrase boundaries = usable with a visual check.</li>
+          <li>&bull; <span class="text-red-500 font-semibold">&lt; 150ms</span> = unsafe (mid-phrase).</li>
+        </ul>
+      </div>
+      <div class="bg-white border border-stone-200 rounded-xl p-5">
+        <div class="font-bold text-[14px] text-stone-900 mb-2">Preserve the peaks</div>
+        <ul class="text-[13px] text-stone-600 space-y-1.5 leading-snug">
+          <li>&bull; Laughs, punchlines, emphasis beats &mdash; keep them.</li>
+          <li>&bull; <strong>Extend past punchlines</strong> to include the reaction: the laugh <em>is</em> the beat.</li>
+          <li>&bull; Audio events <span class="font-mono text-accent">(laughs) (sighs) (applause)</span> mark beats.</li>
+          <li>&bull; Speaker handoffs want air: <strong>400&ndash;600ms</strong> (taste call).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CREATIVE LAYERS ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">Creative layers <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; worked examples, not mandates</span></div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <!-- animations -->
+      <div class="card bg-stone-900 rounded-xl p-5 text-stone-300">
+        <div class="text-accent text-[11px] font-mono font-bold uppercase tracking-wide mb-1">Animations</div>
+        <div class="text-white font-extrabold text-[15px] mb-2">4 engines, pick per slot</div>
+        <ul class="text-[12px] space-y-1.5 leading-snug text-stone-400">
+          <li><span class="text-white font-semibold">HyperFrames</span> &mdash; HTML/CSS/GSAP, UI motion, alpha WebM.</li>
+          <li><span class="text-white font-semibold">Remotion</span> &mdash; React composition + component state.</li>
+          <li><span class="text-white font-semibold">Manim</span> &mdash; diagrams, equations, graph morphs.</li>
+          <li><span class="text-white font-semibold">PIL + ffmpeg</span> &mdash; counters, typewriter, simple cards.</li>
+        </ul>
+        <div class="mt-3 text-[11px] text-stone-500 leading-snug border-t border-stone-800 pt-2">
+          One sub-agent = one animation = one file. Spawn them in parallel. Easing is always cubic &mdash; never linear.
+        </div>
+      </div>
+
+      <!-- grade -->
+      <div class="card bg-white border border-stone-200 rounded-xl p-5">
+        <div class="text-accent text-[11px] font-mono font-bold uppercase tracking-wide mb-1">Color grade</div>
+        <div class="text-stone-900 font-extrabold text-[15px] mb-2">Reason about the image</div>
+        <p class="text-[12px] text-stone-600 leading-snug mb-2">
+          Mental model is ASC&nbsp;CDL: <span class="font-mono text-[11px]">out = (in&middot;slope + offset)<sup>power</sup></span>, then saturation. Look at a frame, adjust one thing, look again.
+        </p>
+        <ul class="text-[12px] space-y-1 text-stone-600">
+          <li>&bull; <span class="font-mono">warm_cinematic</span> &mdash; teal/orange, desaturated.</li>
+          <li>&bull; <span class="font-mono">neutral_punch</span> &mdash; contrast + gentle S-curve.</li>
+          <li>&bull; <span class="font-mono">none</span> &mdash; straight copy (default).</li>
+        </ul>
+        <div class="mt-3 text-[11px] text-stone-400 border-t border-stone-100 pt-2 leading-snug">Applied <strong>per-segment during extraction</strong>, never post-concat.</div>
+      </div>
+
+      <!-- subtitles -->
+      <div class="card bg-white border border-stone-200 rounded-xl p-5">
+        <div class="text-accent text-[11px] font-mono font-bold uppercase tracking-wide mb-1">Subtitles</div>
+        <div class="text-stone-900 font-extrabold text-[15px] mb-2">Three dimensions</div>
+        <ul class="text-[12px] space-y-1 text-stone-600 leading-snug">
+          <li>&bull; <strong>Chunking</strong> &mdash; 1/2/3 words or sentence.</li>
+          <li>&bull; <strong>Case</strong> &mdash; UPPER / Title / Natural.</li>
+          <li>&bull; <strong>Placement</strong> &mdash; bottom margin.</li>
+        </ul>
+        <div class="mt-3 bg-stone-900 rounded-lg p-3 text-center">
+          <div class="text-white font-extrabold tracking-wide text-[13px]" style="text-shadow:0 0 3px #000, 1px 1px 0 #000;">TWO&nbsp;WORD&nbsp;CHUNKS</div>
+          <div class="text-[10px] text-stone-500 font-mono mt-1">bold-overlay &middot; shipped default</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EDL FORMAT ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">The EDL <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; the cut, as data the LLM emits</span></div>
+    <div class="bg-stone-900 rounded-xl overflow-hidden border border-stone-700">
+      <div class="bg-stone-800 px-5 py-2 flex items-center gap-2 border-b border-stone-700">
+        <div class="w-2.5 h-2.5 rounded-full bg-stone-600"></div>
+        <div class="w-2.5 h-2.5 rounded-full bg-stone-600"></div>
+        <div class="w-2.5 h-2.5 rounded-full bg-stone-600"></div>
+        <span class="font-mono text-[11px] text-stone-400 ml-2">edit/edl.json</span>
+      </div>
+      <pre class="px-5 py-4 font-mono text-[12px] leading-relaxed overflow-x-auto text-stone-300">{
+  <span class="text-accent">"version"</span>: 1,
+  <span class="text-accent">"sources"</span>: { <span class="text-emerald-400">"C0103"</span>: "/abs/path/C0103.MP4" },
+  <span class="text-accent">"ranges"</span>: [
+    { <span class="text-emerald-400">"source"</span>: "C0103", <span class="text-emerald-400">"start"</span>: 2.42, <span class="text-emerald-400">"end"</span>: 6.85,
+      <span class="text-emerald-400">"beat"</span>: "HOOK", <span class="text-emerald-400">"quote"</span>: "...",
+      <span class="text-emerald-400">"reason"</span>: "Cleanest delivery, stops before slip at 38.46." }
+  ],
+  <span class="text-accent">"grade"</span>: "warm_cinematic",
+  <span class="text-accent">"overlays"</span>: [
+    { <span class="text-emerald-400">"file"</span>: "edit/animations/slot_1/render.mp4",
+      <span class="text-emerald-400">"start_in_output"</span>: 0.0, <span class="text-emerald-400">"duration"</span>: 5.0 }
+  ],
+  <span class="text-accent">"subtitles"</span>: "edit/master.srt",   <span class="text-stone-500">// applied LAST</span>
+  <span class="text-accent">"total_duration_s"</span>: 87.4
+}</pre>
+    </div>
+  </div>
+
+  <!-- ============ ANTI-PATTERNS ============ -->
+  <div class="px-10 pb-8">
+    <div class="text-[10px] font-extrabold uppercase tracking-[3px] text-stone-400 mb-4">Anti-patterns <span class="text-stone-300 normal-case tracking-normal font-mono">&mdash; things that consistently fail, regardless of style</span></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[12.5px]">
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Pre-computed codec formats with tone/shot/usability tags &mdash; derive at decision time.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Hand-tuned moment-scoring functions &mdash; the LLM picks better.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Whisper SRT / phrase output &mdash; loses sub-second gap data.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Whisper on CPU &mdash; slow, and it normalizes fillers.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Single-pass filtergraph with overlays &mdash; double re-encodes.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Linear animation easing &mdash; looks robotic.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Typing text centered on the partial string &mdash; slides left as it grows.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Sequential sub-agents for animations &mdash; always parallel.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Editing before confirming the strategy &mdash; never.</div>
+      <div class="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 text-stone-700"><span class="text-red-500 font-bold mr-1">&times;</span> Assuming what kind of video it is &mdash; look, ask, then edit.</div>
+    </div>
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <div class="bg-stone-900 px-10 py-5 text-center">
+    <span class="text-stone-400 text-[12px]"><strong class="text-white">Audio transcript</strong> is the primary surface.</span>
+    <span class="text-[12px] text-stone-600 mx-3">&bull;</span>
+    <span class="text-stone-400 text-[12px]"><strong class="text-accent">Visual composites</strong> on demand at decision points.</span>
+    <span class="text-[12px] text-stone-600 mx-3">&bull;</span>
+    <span class="text-stone-400 text-[12px]"><strong class="text-white">12 hard rules</strong>, artistic freedom everywhere else.</span>
+    <div class="text-stone-600 text-[10px] font-mono mt-3">video-use &mdash; edit videos by conversation, 100% open source</div>
+  </div>
+
+</div>
+</body>
+</html>
