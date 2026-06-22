@@ -53,16 +53,6 @@
             "command": "jq -r '\"SESSION_ID: \" + .session_id'"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/caveman-activate.js",
-            "timeout": 5,
-            "statusMessage": "Loading caveman mode..."
-          }
-        ]
       }
     ],
     "PreToolUse": [
@@ -84,6 +74,15 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
       }
     ],
     "Notification": [
@@ -93,18 +92,6 @@
           {
             "type": "command",
             "command": "if [ -n \"$TMUX\" ]; then tmux list-clients -F '#{client_tty}' | while read tty; do printf '\\033]777;notify;Claude Code;Permission required\\007' > \"$tty\"; done; else printf '\\033]777;notify;Claude Code;Permission required\\007' > /dev/tty; fi &"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/caveman-mode-tracker.js",
-            "timeout": 5,
-            "statusMessage": "Tracking caveman mode..."
           }
         ]
       }
@@ -135,12 +122,6 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
-      }
-    },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
       }
     }
   },
