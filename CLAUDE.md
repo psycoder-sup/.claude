@@ -4,3 +4,5 @@
 ## Subagents
 - Subagents can't spawn subagents. The `Agent`/`Task` tool isn't available inside one and can't be enabled.
 - Never tell a subagent to "use X agent" — give the underlying command instead. Main session dispatches all agents.
+
+@RTK.md
