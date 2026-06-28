@@ -41,3 +41,7 @@ chrome/
 policy-limits.json
 .last-update-result.json
 
+daemon
+daemon.log
+jobs
+
