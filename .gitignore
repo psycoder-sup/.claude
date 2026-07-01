@@ -45,3 +45,6 @@ daemon
 daemon.log
 jobs
 
+# /orchestrate run log (runtime state; skills/orchestrate/ stays tracked)
+/orchestrate/
+

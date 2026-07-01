@@ -103,13 +103,12 @@
   },
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": true,
     "context7@claude-plugins-official": false,
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": false,
     "workflow@local": false,
-    "vercel@claude-plugins-official": false,
-    "code-review@claude-plugins-official": false
+    "vercel@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "local": {
@@ -139,11 +138,13 @@
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
   "theme": "dark",
   "editorMode": "vim",
-  "preferredNotifChannel": "notifications_disabled",
+  "preferredNotifChannel": "auto",
   "autoCompactEnabled": false,
   "teammateMode": "in-process",
-  "skipAutoPermissionPrompt": true,
-  "skipWorkflowUsageWarning": true
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }
