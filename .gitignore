@@ -48,3 +48,6 @@ jobs
 # /orchestrate run log (runtime state; skills/orchestrate/ stays tracked)
 /orchestrate/
 
+# tian run log (runtime state; skills/tian/ stays tracked)
+/tian/
+
