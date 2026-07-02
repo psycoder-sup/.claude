@@ -1,19 +1,19 @@
 ---
 name: orchestrate
 description: >
-  Run a milestone as an orchestrator: plan -> partition into file-disjoint waves -> delegate to N
+  Run a body of work as an orchestrator: plan -> partition into file-disjoint waves -> delegate to N
   parallel code-implementer subagents -> integrate, verify, review -> (PR on request). The main
   session orchestrates and NEVER writes implementation code itself. Every wave and run is logged for
   later analysis. Use for non-trivial multi-file features run inside a dedicated worktree.
 trigger: /orchestrate
 user-invocable: true
-argument-hint: "<milestone description or path to a plan file>"
-allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion", "TaskCreate", "TaskUpdate"]
+argument-hint: "<work description or path to a plan file>"
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion", "TaskCreate", "TaskUpdate", "EnterWorktree"]
 ---
 
 # /orchestrate
 
-Run a milestone end-to-end as an **orchestrator**: you plan and partition the work, delegate the
+Run a body of work end-to-end as an **orchestrator**: you plan and partition the work, delegate the
 actual coding to parallel `code-implementer` subagents, integrate and verify their output, get it
 reviewed, and (only on request) open a PR. **You never write the implementation yourself.** Every run
 is logged so the harness can be analyzed and improved over time.
@@ -24,7 +24,7 @@ Claude-Code primitives (worktree + native subagents + skills) — no tian CLI.
 ## The roles (keep them separate)
 
 - **Orchestrator (you, this session)** — plan, partition, delegate, run commands (build/test/git),
-  integrate, decide. You hold the whole milestone in context.
+  integrate, decide. You hold all of the work in context.
 - **`code-implementer` subagent** — implements ONE scoped task inside a fixed file boundary,
   self-verifies, returns a structured report. Spawned N-at-a-time, in parallel.
 - **`verifier` subagent (optional)** — independently reproduces build/tests and checks acceptance
@@ -42,43 +42,76 @@ guarantees.
 
 ## Preconditions
 
-Run this **inside a dedicated milestone worktree**, so the whole milestone is isolated from `main`:
+Run this **inside a dedicated worktree**, so all the work is isolated from `main`:
 
 **Branch policy — the branch you're on decides everything.** Run `git branch --show-current` at the
 start of step 1, then:
 
-- **On `main`/`master`** (you're NOT in a dedicated worktree) → create the milestone branch:
-  `git checkout -b feat/<slug>`. **This is the only case where you create a branch.**
-- **On any other branch** (the normal `claude --worktree` case) → **never create a branch.** That
-  branch already IS your milestone branch.
+- **On `main`/`master`** (you're NOT in a dedicated worktree) → **create a worktree** with the
+  built-in `EnterWorktree` tool: `EnterWorktree({ name: "feat/<slug>" })`. It creates an isolated
+  git worktree (under `.claude/worktrees/`) and switches this session into it — so the work
+  runs isolated from `main`, exactly like the `claude --worktree` case. **This is the only case
+  where you create anything.** Do *not* use `git checkout -b`: that stays in the `main` working tree
+  and doesn't isolate the work.
+  - **Gotcha — the branch name is sanitized, not literal.** `EnterWorktree({ name: "feat/<slug>" })`
+    does NOT produce a `feat/<slug>` branch: it slugifies the name (`/` → `+`) and prefixes it, so
+    you land on branch `worktree-feat+<slug>` (dir `feat+<slug>`). That's expected — don't fight it.
+  - **Gotcha — do NOT rename this branch.** Leave the `worktree-feat+<slug>` name as-is. Here
+    `EnterWorktree` owns the branch's whole lifecycle: `ExitWorktree({ action: "remove" })` deletes
+    the *exact* branch it created. A `git branch -m` would desync that — cleanup removes the old
+    name and the renamed branch survives, orphaned, needing a manual `git branch -d`. The ugly name
+    is the price of clean auto-teardown; accept it.
+- **On any other branch** (the normal `claude --worktree` case) → **never create a branch or
+  worktree.** That branch already IS the branch for this work. (`EnterWorktree` did not run this
+  session, so there's no `ExitWorktree` auto-teardown to desync — renaming here is safe.)
   - Auto-generated placeholder (e.g. `worktree-polymorphic-seeking-riddle`)? Rename it **in place**
     with `git branch -m feat/<slug>` (e.g. `git branch -m feat/inbox-create-modal-properties`). `-m`
     renames the current branch *without* creating a new one or moving HEAD, so worktree isolation is
-    fully preserved while the milestone gets a readable name.
+    fully preserved while the branch gets a readable name.
   - Already a meaningful name? Leave it as-is.
 
-`-m` = rename = safe. `checkout -b` while on a non-main branch = a stray branch + a moved HEAD = the
-footgun that switches the branch out from under the milestone. Never do it.
+`git branch -m` = rename in place = safe, but **only** in the non-main case above (an
+`EnterWorktree`-created branch must keep its name so auto-teardown can delete it). `checkout -b`
+while on a non-main branch = a stray branch + a moved HEAD = the footgun that switches the branch
+out from under your work. Never do it.
 
 ## Workflow
 
 ### 1. Plan + partition
-- **Worth orchestrating? (gate — decide before anything else.)** Estimate the parallel width up
-  front: how many *independent* tasks could actually run at once. If the honest answer is ~1
-  (sequential work) or just 1–2 small tasks, **don't orchestrate** — the planning + per-agent briefs +
-  integration overhead dominates, the orchestrator's own tokens become ~80–90% of the cost, and
-  there's no parallelism to bank for it. Say so to the user and either do it in a normal session or
-  dispatch a single `code-implementer` without the full wave machinery. Reserve `/orchestrate` for
-  genuinely multi-file work with real parallel width (≥2 independent tasks sharing a wave).
-- **Branch:** run `git branch --show-current`. On `main`/`master` → `git checkout -b feat/<slug>`.
-  On any other branch → never create one: rename an auto-generated placeholder in place with
-  `git branch -m feat/<slug>`, or stay if it's already meaningful (see Branch policy above).
-- Decompose the milestone into independent **tasks**. If a plan file was passed as the argument,
+- **Get into the worktree first — precondition, not a judgment call.** `/orchestrate` always runs
+  off `main`, so establish this before anything that writes a file (a plan, `status.json`) or you'll
+  strand it on `main`. Run `git branch --show-current`:
+  - **On `main`/`master`** → `EnterWorktree({ name: "feat/<slug>" })`, and **leave the resulting
+    `worktree-feat+<slug>` branch name as-is** — renaming it orphans the branch at cleanup (see
+    Branch policy).
+  - **On any other branch** (the normal `claude --worktree` case) → you're already isolated; never
+    create a worktree or branch. Rename an auto-generated placeholder in place with
+    `git branch -m feat/<slug>`, or keep it if it's already meaningful (see Branch policy above).
+- **Worth orchestrating? (hard gate — a pure parallel-width call.)** With the worktree ready,
+  compute the **parallel width** `W` = the most *independent* tasks (disjoint file sets) that could
+  run together in a single wave. Then apply the rule mechanically:
+  - **`W == 1` → do NOT orchestrate.** This covers both a single task *and* work that only runs
+    one-at-a-time (every wave has one agent, i.e. `agents == waves` — sequential work in a parallel
+    costume). Say so to the user and either do the work in a normal session (`ExitWorktree` to drop
+    the fresh worktree — an unchanged one auto-cleans) or dispatch **one** `code-implementer` without
+    the wave machinery.
+  - **`W ≥ 2` → orchestrate.** At least one wave has genuine parallel work to bank against the
+    overhead.
+
+  The same test applies after the fact: a logged run where `agents == 1` or `agents == waves` should
+  not have used `/orchestrate`. **Why the gate is hard, not advisory:** orchestration is expensive —
+  measured across logged runs, the orchestrator *alone* is ~75–90% of output tokens (planning +
+  per-agent briefs + integration + running reviews), while `code-implementer` output is only a few
+  percent. That overhead pays off **only** when parallel work runs concurrently; at `W == 1` you pay
+  it in full and bank nothing. Do not soften this gate by planning less to shrink the orchestrator's
+  share — planning stays thorough. The only lever is *not orchestrating serial work in the first
+  place*.
+- Decompose the work into independent **tasks**. If a plan file was passed as the argument,
   start from it; otherwise build the plan with the user (use plan mode for anything non-trivial).
 - Build a **file-ownership map**: for each task, the set of files it will create/modify.
 - Group tasks into **waves**: tasks with **disjoint** file sets share a wave (they run in parallel);
   tasks that depend on another's output go in a later wave.
-- Mint a **run id** now and reuse it for every `orchlog.py` call this milestone:
+- Mint a **run id** now and reuse it for every `orchlog.py` call in this run:
   ```bash
   run_id="<branch>-$(date +%Y%m%d-%H%M%S)"
   ```
@@ -95,8 +128,13 @@ N is **discovered, not forced** — only split work that is genuinely independen
 - Sequential dependency (task B needs task A's API) → N=1 for that stretch; don't fake parallelism.
 - Default isolation is **same tree** (all agents in this worktree, partitioned by file → trivial
   integration). Give an agent `isolation: worktree` only when its change is large/risky enough to
-  want its own checkout. Note: a shared-file conflict is NOT solved by isolation (it just moves to
-  merge time) — solve those by serializing / single-owner.
+  want its own checkout. A shared-file conflict is NOT solved by isolation (it just moves to merge
+  time) — solve those by serializing / single-owner. **Caveat:** an `isolation: worktree` agent gets
+  a *separate checkout*, so it (a) can't see uncommitted changes in this worktree, (b) with the
+  default `worktree.baseRef=fresh` branches from `origin/<default-branch>` — it won't even see this
+  branch's commits, and (c) its output must be merged back separately. So **never use it for work
+  that depends on another wave or on the current state of the work** — reserve it for a
+  large/risky standalone task that's fine to run from a clean origin-based checkout.
 
 ### 3. Dispatch a wave
 Spawn the wave's implementers **in a single message, one `Agent` call each**, so they run in
@@ -147,8 +185,8 @@ spawn subagents — so **you (the orchestrator) must run each one yourself, dire
 never delegate a review to a `code-implementer`** (it would fail or silently degrade). Invoking them
 is an orchestrator action, like running build/test.
 
-**You judge which of the two this milestone needs, and run each you deem necessary:**
-- **`/code-review medium`** — warranted for essentially any milestone with real code changes; run it
+**You judge which of the two this change needs, and run each you deem necessary:**
+- **`/code-review medium`** — warranted for essentially any run with real code changes; run it
   unless the diff is trivial/non-code (docs-only, pure config). **Always pass `medium`** — the no-arg
   default is `xhigh`, which burns far more tokens than a routine review needs; only go higher
   (high/max/ultra) when the user explicitly asks.
@@ -163,17 +201,20 @@ is an orchestrator action, like running build/test.
 ### 6. Finish + run log
 - **Only if the user explicitly asks**, publish: `gh pr create ...` (and/or commit). Otherwise leave
   the worktree in place and report what was done and verified — publishing is the user's call.
-- If the repo uses `project-kit`, update `docs/pm/status.json` (move the milestone to Next/Shipped).
-- **Log the run summary** (once per milestone). Token capture is **automatic** — it scans this
+- If the repo uses `project-kit`, update `docs/pm/status.json` (move the item to Next/Shipped).
+- **Log the run summary** (once per run). Token capture is **automatic** — it scans this
   session's subagent + orchestrator transcripts and embeds usage **by agent type** (session
   auto-detected from cwd; pass `--no-auto-tokens` to skip):
   ```bash
   python3 ~/.claude/skills/orchestrate/orchlog.py record --type run --run-id "$run_id" \
-    --branch "<branch>" --milestone "<desc>" --waves 2 --agents 5 --fix-iterations 1 \
+    --branch "<branch>" --milestone "<desc>" --waves 2 --agents 5 \
     --outcome success --build-final pass --tests-final pass --review-findings 2
   # add --pr-created if you opened a PR.
+  # Do NOT pass --fix-iterations: it is derived automatically from this run's agent records
+  #   (the --rework / --review-fix tags you logged per implementer), so it can't drift from
+  #   reality. It survives only as a manual override; leave it off.
   # Token capture is automatic in a dedicated worktree session (the norm). If you reuse one session
-  # across milestones, also pass --since "<milestone-start ISO>" to scope the scan.
+  # across runs, also pass --since "<run-start ISO>" to scope the scan.
   ```
 
 ## Management principles
@@ -192,16 +233,20 @@ python3 ~/.claude/skills/orchestrate/orchlog.py report --recent 20
 ```
 
 **Quality signals**: high **boundary_stop** rate → partitioning too coarse or boundaries wrong; high
-**rework** (re-delegations after a failed self-verify) → briefs under-specified or tasks too big; high
-**deviated** → acceptance criteria not tight enough; the **verdict** mix and **fix-iters** show
-overall health and parallel utilization. **review_fix** is tracked separately and is *healthy*
-(review findings routed to fixes) — it never counts against brief quality.
+**avg rework/run** (re-delegations after a failed self-verify, derived from agent tags) → briefs
+under-specified or tasks too big; high **deviated** → acceptance criteria not tight enough; the
+**verdict** mix shows overall health and parallel utilization. **avg review-fix/run** is derived and
+tracked separately as *healthy* (review findings routed to fixes) — it never counts against brief
+quality. Both per-run averages come straight from the per-agent `--rework` / `--review-fix` tags, so
+they can't be inflated by a stale hand-entered count.
 
 **Cost signals** (the COST block, captured automatically): **output by type** shows where tokens go —
-if `orchestrator` dominates, the orchestration overhead itself is the cost (a sign to delegate more
-coarsely, plan more cheaply, or skip orchestration for small jobs — see "Worth orchestrating?" in
-step 1); **~rework output** is tokens burned on rework, tying the `rework` quality signal directly to
-a dollar-shaped number. For an ad-hoc look at the current session without logging a run:
+if `orchestrator` dominates, the orchestration overhead itself is the cost (the fix is to delegate
+more coarsely or, for serial/small jobs, not orchestrate at all — see the hard gate in step 1 — **not**
+to plan less; thorough planning is a feature, not the leak). The `review` bucket is the cost of running
+`/code-review` + `/security-review`; **~rework output** is tokens burned on rework, tying the `rework`
+quality signal directly to a dollar-shaped number. For an ad-hoc look at the current session without
+logging a run:
 ```bash
 python3 ~/.claude/skills/orchestrate/orchlog.py tokens          # output/total by agent type
 ```

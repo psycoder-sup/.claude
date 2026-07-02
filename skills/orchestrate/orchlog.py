@@ -29,7 +29,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-WORKFLOW_VERSION = "1.3.0"  # bump when the kit's architecture/log schema changes
+WORKFLOW_VERSION = "1.5.0"  # bump when the kit's architecture/log schema changes
 
 
 def log_path():
@@ -55,21 +55,69 @@ def sanitize_cwd(path):
     return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(path))
 
 
+def projects_root():
+    return Path.home() / ".claude" / "projects"
+
+
 def project_dir_for_cwd(cwd=None):
-    return Path.home() / ".claude" / "projects" / sanitize_cwd(cwd or os.getcwd())
+    return projects_root() / sanitize_cwd(cwd or os.getcwd())
+
+
+WORKTREE_MARKER = "--claude-worktrees-"
+
+
+def candidate_project_dirs(project_dir):
+    """The cwd's project dir plus the worktree project dirs related to it.
+
+    EnterWorktree changes cwd mid-session, so a milestone's transcripts can live under a
+    *different* project dir than the one derived from the current cwd. For auto-detect we
+    consider:
+      - the cwd's own project dir,
+      - its worktree children  (<name>--claude-worktrees-<slug>), and
+      - if the cwd IS a worktree dir, the parent repo's project dir.
+    """
+    root = projects_root()
+    dirs = [project_dir]
+    for d in sorted(root.glob(project_dir.name + WORKTREE_MARKER + "*")):
+        if d.is_dir() and d not in dirs:
+            dirs.append(d)
+    if WORKTREE_MARKER in project_dir.name:
+        parent = root / project_dir.name.split(WORKTREE_MARKER, 1)[0]
+        if parent.is_dir() and parent not in dirs:
+            dirs.append(parent)
+    return dirs
 
 
 def pick_session(project_dir, session=None):
-    """Explicit session, else the newest session that spawned subagents (else newest transcript)."""
+    """Explicit session, else the newest session that spawned subagents (else newest transcript).
+
+    Searches the cwd's project dir *and* related worktree dirs, so auto-detect still finds the
+    session after EnterWorktree relocated the transcripts (the #1 cause of MISSING token data).
+    """
     if session:
         return session
-    cands = list(project_dir.glob("*/subagents"))
-    if cands:
-        return max(cands, key=lambda p: p.stat().st_mtime).parent.name
-    files = list(project_dir.glob("*.jsonl"))
+    dirs = candidate_project_dirs(project_dir)
+    subs = [p for d in dirs for p in d.glob("*/subagents")]
+    if subs:
+        return max(subs, key=lambda p: p.stat().st_mtime).parent.name
+    files = [p for d in dirs for p in d.glob("*.jsonl")]
     if files:
         return max(files, key=lambda p: p.stat().st_mtime).stem
     return None
+
+
+def find_transcript_files(session):
+    """Locate a session's main + subagent transcripts across ALL project dirs.
+
+    A session id is globally unique, but its transcript can be split across project dirs when
+    EnterWorktree changes cwd (early planning under the repo dir, later work under the worktree
+    dir). Globbing by session id everywhere collects every piece regardless of location.
+    Returns (main_transcript_paths, subagent_transcript_paths).
+    """
+    root = projects_root()
+    mains = sorted(root.glob(f"*/{session}.jsonl"))
+    subs = sorted(root.glob(f"*/{session}/subagents/agent-*.jsonl"))
+    return mains, subs
 
 
 def parse_ts(s):
@@ -81,7 +129,7 @@ def parse_ts(s):
         return None
 
 
-def _sum_usage_file(path, since_dt):
+def _sum_usage_file(path, since_dt, until_dt=None):
     out = tot = 0
     for line in _read_lines(path):
         line = line.strip()
@@ -91,9 +139,11 @@ def _sum_usage_file(path, since_dt):
             o = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if since_dt:
+        if since_dt or until_dt:
             t = parse_ts(o.get("timestamp"))
-            if t and t < since_dt:
+            if t and since_dt and t < since_dt:
+                continue
+            if t and until_dt and t > until_dt:
                 continue
         m = o.get("message")
         u = m.get("usage") if isinstance(m, dict) else None
@@ -109,6 +159,14 @@ def _sum_usage_file(path, since_dt):
 
 
 def _agent_type_of(path):
+    """Agent type for a subagent transcript.
+
+    Prefer attributionAgent. Subagents spawned by a slash command (notably the /code-review
+    and /security-review internal agents) carry no attributionAgent — they surface only an
+    attributionSkill or a bare entrypoint=cli. Bucket those under a meaningful label instead
+    of 'unknown', which otherwise hides real review cost (seen as high as 76% of a run).
+    """
+    askill = entry = None
     for line in _read_lines(path):
         try:
             o = json.loads(line)
@@ -117,35 +175,48 @@ def _agent_type_of(path):
         a = o.get("attributionAgent")
         if a:
             return a if isinstance(a, str) else json.dumps(a)
+        if askill is None:
+            askill = o.get("attributionSkill")
+        if entry is None:
+            entry = o.get("entrypoint")
+    if askill:
+        return f"skill:{askill}" if isinstance(askill, str) else "review"
+    if entry == "cli":
+        return "review"  # /code-review + /security-review internal subagents
     return "unknown"
 
 
-def compute_tokens(project_dir, session, since=None):
+def compute_tokens(session, since=None, until=None):
     """Return {session, output, total, by_type:{type:{output,total,n}}} for a milestone.
 
-    `since` (ISO) narrows to records at/after a milestone start — only needed when a
-    session is reused across milestones; a dedicated worktree session can omit it.
+    `since`/`until` (ISO) bound the scan to a milestone window. `since` is only needed when a
+    session is reused across milestones; a dedicated worktree session can omit both. `until` is
+    used mainly for post-hoc backfill (a live run logs at milestone end, so nothing follows it).
+
+    Transcripts are located globally by session id (see find_transcript_files), so a session
+    split across the repo dir and a worktree dir — or logged from the "wrong" cwd — is fully
+    accounted for, orchestrator main transcript included.
     """
     since_dt = parse_ts(since) if since else None
+    until_dt = parse_ts(until) if until else None
     by = {}  # type -> [output, total, n]
-    sub = project_dir / session / "subagents"
-    if sub.is_dir():
-        for f in sorted(sub.glob("agent-*.jsonl")):
-            o, t = _sum_usage_file(f, since_dt)
-            if not (o or t):
-                continue
-            r = by.setdefault(_agent_type_of(f), [0, 0, 0])
-            r[0] += o
-            r[1] += t
-            r[2] += 1
-    main = project_dir / f"{session}.jsonl"
-    if main.exists():
-        o, t = _sum_usage_file(main, since_dt)
-        if o or t:
-            r = by.setdefault("orchestrator", [0, 0, 0])
-            r[0] += o
-            r[1] += t
-            r[2] += 1
+    mains, subs = find_transcript_files(session)
+    for f in subs:
+        o, t = _sum_usage_file(f, since_dt, until_dt)
+        if not (o or t):
+            continue
+        r = by.setdefault(_agent_type_of(f), [0, 0, 0])
+        r[0] += o
+        r[1] += t
+        r[2] += 1
+    for f in mains:
+        o, t = _sum_usage_file(f, since_dt, until_dt)
+        if not (o or t):
+            continue
+        r = by.setdefault("orchestrator", [0, 0, 0])
+        r[0] += o
+        r[1] += t
+        r[2] += 1
     return {
         "session": session,
         "output": sum(v[0] for v in by.values()),
@@ -159,7 +230,7 @@ def _tokens_from_args(a):
     session = pick_session(pdir, a.session)
     if not session:
         return None
-    return compute_tokens(pdir, session, a.since)
+    return compute_tokens(session, a.since, getattr(a, "until", None))
 
 
 # ---- record ----------------------------------------------------------------
@@ -191,12 +262,19 @@ def cmd_record(a):
             "review_fix": a.review_fix,
         })
     else:  # run
+        # fix activity is DERIVED from this run's already-logged agent records (their rework /
+        # review_fix tags), not trusted from the CLI: the hand-entered count conflated rework with
+        # healthy review-fixes. --fix-iterations survives only as an explicit override.
+        rework_n, rfix_n = fix_counts_for_run(a.run_id, load(log_path()))
+        fix_iters = a.fix_iterations if a.fix_iterations is not None else rework_n
         rec.update({
             "branch": a.branch,
             "milestone": a.milestone,
             "waves": a.waves,
             "agents_total": a.agents,
-            "fix_iterations": a.fix_iterations,
+            "fix_iterations": fix_iters,        # = rework agents (derived) unless overridden
+            "rework_agents": rework_n,          # re-delegations after a failed self-verify
+            "review_fix_agents": rfix_n,        # review findings routed to fix tasks (healthy)
             "outcome": a.outcome,
             "build_final": a.build_final,
             "tests_final": a.tests_final,
@@ -273,6 +351,23 @@ def _is_rework(r):
     return bool(r.get("redelegated"))
 
 
+def fix_counts_for_run(run_id, records):
+    """(rework_agents, review_fix_agents) for a run, derived from its agent records.
+
+    This is the authoritative source for a run's fix activity: it counts the per-agent tags
+    logged during the waves, not a hand-entered run-level number (which historically conflated
+    rework with healthy review-fixes and was near-uniformly 1)."""
+    rework = rfix = 0
+    for r in records:
+        if r.get("type") != "agent" or r.get("run_id") != run_id:
+            continue
+        if _is_rework(r):
+            rework += 1
+        elif r.get("review_fix"):
+            rfix += 1
+    return rework, rfix
+
+
 def cmd_report(a):
     recs = load(log_path())
     if not recs:
@@ -319,6 +414,20 @@ def cmd_report(a):
                     if isinstance(r.get(key), (int, float)) and not isinstance(r.get(key), bool)]
             return f"{sum(vals) / len(vals):.1f}" if vals else "—"
 
+        # Fix activity is derived from agent tags (authoritative), grouped by run — never from the
+        # legacy hand-entered `fix_iterations`, which conflated rework with healthy review-fixes.
+        rework_by_run = defaultdict(int)
+        rfix_by_run = defaultdict(int)
+        for ar in agents:
+            rid = ar.get("run_id")
+            if _is_rework(ar):
+                rework_by_run[rid] += 1
+            elif ar.get("review_fix"):
+                rfix_by_run[rid] += 1
+        nruns = len(runs)
+        avg_rework = sum(rework_by_run[r.get("run_id")] for r in runs) / nruns
+        avg_rfix = sum(rfix_by_run[r.get("run_id")] for r in runs) / nruns
+
         pr = sum(1 for r in runs if r.get("pr_created"))
         bf = sum(1 for r in runs if r.get("build_final") == "pass")
         tf = sum(1 for r in runs if r.get("tests_final") == "pass")
@@ -326,7 +435,8 @@ def cmd_report(a):
         print("  outcome:        " + ", ".join(f"{k}={v}" for k, v in oc.items()))
         print(f"  avg waves:      {avg('waves')}")
         print(f"  avg agents:     {avg('agents_total')}")
-        print(f"  avg fix-iters:  {avg('fix_iterations')}   <- high = briefs/partition need work")
+        print(f"  avg rework/run:     {avg_rework:.2f}   <- derived from agent tags; high = self-verify failures, briefs/partition need work")
+        print(f"  avg review-fix/run: {avg_rfix:.2f}   (healthy: review findings routed to fix tasks)")
         print(f"  build_final ok: {pct(bf, len(runs))}   tests_final ok: {pct(tf, len(runs))}   pr_created: {pct(pr, len(runs))}")
         print()
 
@@ -379,7 +489,8 @@ def cmd_report(a):
 
 # ---- cli -------------------------------------------------------------------
 def _add_session_args(p):
-    p.add_argument("--since", default=None, help="ISO ts; narrow to a milestone window (reused sessions)")
+    p.add_argument("--since", default=None, help="ISO ts; narrow to a milestone window start (reused sessions)")
+    p.add_argument("--until", default=None, help="ISO ts; narrow to a milestone window end (post-hoc backfill)")
     p.add_argument("--session", default=None, help="session id (default: newest under cwd's project dir)")
     p.add_argument("--project-dir", dest="project_dir", default=None, help="override the projects/<cwd> dir")
 
@@ -416,7 +527,8 @@ def main():
     r.add_argument("--milestone", default="")
     r.add_argument("--waves", type=int)
     r.add_argument("--agents", type=int)
-    r.add_argument("--fix-iterations", type=int, dest="fix_iterations", default=0)
+    r.add_argument("--fix-iterations", type=int, dest="fix_iterations", default=None,
+                   help="DEPRECATED: derived from agent rework tags; pass only to override the derived value")
     r.add_argument("--outcome", choices=["success", "partial", "failed"])
     r.add_argument("--build-final", dest="build_final", default=None)
     r.add_argument("--tests-final", dest="tests_final", default=None)
