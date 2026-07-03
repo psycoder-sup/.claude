@@ -2,6 +2,7 @@
 name: code-implementer
 description: Implements a single, well-scoped coding task within an explicit file boundary, self-verifies, and returns a structured report. Use when an orchestrator delegates ONE independent unit of implementation work (one wave-item) — not for architecture decisions, multi-task planning, or cross-cutting changes.
 tools: Read, Write, Edit, Bash, Glob, Grep
+model: opus
 color: blue
 ---
 

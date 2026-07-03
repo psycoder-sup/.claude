@@ -138,8 +138,10 @@ N is **discovered, not forced** — only split work that is genuinely independen
 
 ### 3. Dispatch a wave
 Spawn the wave's implementers **in a single message, one `Agent` call each**, so they run in
-parallel (`subagent_type: "code-implementer"`). Each gets a self-contained brief — implementers
-share no memory, so front-load everything:
+parallel (`subagent_type: "code-implementer"`). Implementers (and the `verifier`) default to
+**Opus latest** via `model: opus` in their agent definitions — don't pass a `model` on the `Agent`
+call unless the user asks for a different tier for a specific task. Each gets a self-contained
+brief — implementers share no memory, so front-load everything:
 
 ```
 ## Task

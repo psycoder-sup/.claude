@@ -29,7 +29,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-WORKFLOW_VERSION = "1.5.0"  # bump when the kit's architecture/log schema changes
+WORKFLOW_VERSION = "1.6.0"  # bump when the kit's architecture/log schema changes
 
 
 def log_path():

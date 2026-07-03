@@ -2,6 +2,7 @@
 name: verifier
 description: Independently verifies that a change meets its acceptance criteria by reproducing the build and tests and checking each criterion against the actual code — read-only, never edits source. Use as a second-opinion gate after implementers report, when you want verification that does not trust the implementer's self-report.
 tools: Read, Bash, Glob, Grep
+model: opus
 color: green
 ---
 
