@@ -205,7 +205,11 @@ is an orchestrator action, like running build/test.
 ### 6. Finish + run log
 - **Only if the user explicitly asks**, publish: `gh pr create ...` (and/or commit). Otherwise leave
   the worktree in place and report what was done and verified — publishing is the user's call.
-- If the repo uses `project-kit`, update `docs/pm/status.json` (move the item to Next/Shipped).
+- If the repo uses `project-kit`, you may reflect **in-progress** state in `docs/pm/status.json` if
+  useful (keep the milestone in `now`), but **do not mark it shipped here** — the now→shipped
+  transition is folded into the milestone PR by `/orchestrate-cleanup` (step 1), so `main` is only
+  ever mutated by a merge. Marking it shipped in both places is the double-write that causes the
+  cross-session `main` conflicts this workflow is designed to avoid.
 - **Log the run summary** (once per run). Token capture is **automatic** — it scans this
   session's subagent + orchestrator transcripts and embeds usage **by agent type** (session
   auto-detected from cwd; pass `--no-auto-tokens` to skip):
