@@ -98,14 +98,16 @@ out from under your work. Never do it.
   - **`W ≥ 2` → orchestrate.** At least one wave has genuine parallel work to bank against the
     overhead.
 
-  The same test applies after the fact: a logged run where `agents == 1` or `agents == waves` should
-  not have used `/orchestrate`. **Why the gate is hard, not advisory:** orchestration is expensive —
-  measured across logged runs, the orchestrator *alone* is ~75–90% of output tokens (planning +
-  per-agent briefs + integration + running reviews), while `code-implementer` output is only a few
-  percent. That overhead pays off **only** when parallel work runs concurrently; at `W == 1` you pay
-  it in full and bank nothing. Do not soften this gate by planning less to shrink the orchestrator's
-  share — planning stays thorough. The only lever is *not orchestrating serial work in the first
-  place*.
+  The same test applies after the fact: a logged run with **`peak_width == 1`** should not have used
+  `/orchestrate`. `peak_width` (the max agents in any single wave) is stored per run and surfaced by
+  `report`; it's the honest measure of whether *any* wave ran in parallel. The older `agents == waves`
+  proxy was weaker — a lone wide wave among 1-agent waves could fool it. **Why the gate is hard, not
+  advisory:** orchestration is expensive — measured across logged runs (schema ≥1.7, where token
+  attribution is trustworthy), the orchestrator *alone* is ~77% of output tokens (planning + per-agent
+  briefs + integration + running reviews), with `code-implementer` output ~15% and review ~6%. That
+  overhead pays off **only** when parallel work runs concurrently; at `W == 1` you pay it in full and
+  bank nothing. Do not soften this gate by planning less to shrink the orchestrator's share — planning
+  stays thorough. The only lever is *not orchestrating serial work in the first place*.
 - Decompose the work into independent **tasks**. If a plan file was passed as the argument,
   start from it; otherwise build the plan with the user (use plan mode for anything non-trivial).
 - Build a **file-ownership map**: for each task, the set of files it will create/modify.
@@ -215,8 +217,12 @@ is an orchestrator action, like running build/test.
   # Do NOT pass --fix-iterations: it is derived automatically from this run's agent records
   #   (the --rework / --review-fix tags you logged per implementer), so it can't drift from
   #   reality. It survives only as a manual override; leave it off.
-  # Token capture is automatic in a dedicated worktree session (the norm). If you reuse one session
-  # across runs, also pass --since "<run-start ISO>" to scope the scan.
+  # peak_width + wave_widths are ALSO derived automatically from this run's per-wave agent
+  #   records — nothing to pass. peak_width==1 flags a run that shouldn't have been orchestrated.
+  # Token capture is automatic in a dedicated worktree session (the norm) and now buckets by the
+  #   agent's .meta.json customAgentType, so async in_process_teammate implementers land in
+  #   `code-implementer` (pre-1.7 they leaked into `review`). If you reuse one session across runs,
+  #   also pass --since "<run-start ISO>" to scope the scan.
   ```
 
 ## Management principles
@@ -242,10 +248,18 @@ tracked separately as *healthy* (review findings routed to fixes) — it never c
 quality. Both per-run averages come straight from the per-agent `--rework` / `--review-fix` tags, so
 they can't be inflated by a stale hand-entered count.
 
+**Parallelism signal**: **avg peak width** and the **serial runs (peak==1)** count expose gate leaks —
+any `peak_width == 1` run paid full orchestration overhead and banked no parallelism (it violated the
+`W ≥ 2` gate in step 1 and should have been a normal session or a single implementer). Watch this
+alongside the cost block: a peak==1 run is pure orchestrator overhead with nothing to amortize it.
+
 **Cost signals** (the COST block, captured automatically): **output by type** shows where tokens go —
 if `orchestrator` dominates, the orchestration overhead itself is the cost (the fix is to delegate
 more coarsely or, for serial/small jobs, not orchestrate at all — see the hard gate in step 1 — **not**
-to plan less; thorough planning is a feature, not the leak). The `review` bucket is the cost of running
+to plan less; thorough planning is a feature, not the leak). Buckets are keyed off each agent's
+`.meta.json` `customAgentType` (schema ≥1.7); **pre-1.7 numbers are unreliable** — async
+in_process_teammate implementers leaked into `review`, so `code-implementer` read as ~0 and `review`
+was inflated (only compare runs at the same schema version). The `review` bucket is the genuine cost of
 `/code-review` + `/security-review`; **~rework output** is tokens burned on rework, tying the `rework`
 quality signal directly to a dollar-shaped number. For an ad-hoc look at the current session without
 logging a run:

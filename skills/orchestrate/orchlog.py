@@ -15,11 +15,15 @@ are for whoever reviews the harness over time to improve the workflow and the ag
 architecture.
 
 Token usage is recovered post-hoc from Claude Code transcripts:
-  ~/.claude/projects/<sanitized-cwd>/<session>.jsonl              (orchestrator)
-  ~/.claude/projects/<sanitized-cwd>/<session>/subagents/*.jsonl  (subagents)
-Each message carries a `usage` block; subagent files carry `attributionAgent`
-(the agent type), so usage is grouped by type. The session is auto-detected from
-the current cwd (newest session), so no session-id plumbing is needed.
+  ~/.claude/projects/<sanitized-cwd>/<session>.jsonl                 (orchestrator)
+  ~/.claude/projects/<sanitized-cwd>/<session>/subagents/agent-*.jsonl       (subagents)
+  ~/.claude/projects/<sanitized-cwd>/<session>/subagents/agent-*.meta.json   (agent type)
+Each message carries a `usage` block, so usage is grouped by type. The agent type is
+read from the sibling `.meta.json` (`customAgentType`) first — the authoritative source,
+and the only one that identifies async in_process_teammate implementers, which carry no
+`attributionAgent` in-transcript — falling back to transcript `attributionAgent`/
+`attributionSkill`. The session is auto-detected from the current cwd (newest session),
+so no session-id plumbing is needed.
 """
 import argparse
 import json
@@ -29,7 +33,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-WORKFLOW_VERSION = "1.6.0"  # bump when the kit's architecture/log schema changes
+WORKFLOW_VERSION = "1.7.0"  # bump when the kit's architecture/log schema changes
 
 
 def log_path():
@@ -158,29 +162,61 @@ def _sum_usage_file(path, since_dt, until_dt=None):
     return out, tot
 
 
-def _agent_type_of(path):
-    """Agent type for a subagent transcript.
+def _meta_agent_type(path):
+    """Authoritative agent type from the `<agent>.meta.json` sidecar, or None.
 
-    Prefer attributionAgent. Subagents spawned by a slash command (notably the /code-review
-    and /security-review internal agents) carry no attributionAgent — they surface only an
-    attributionSkill or a bare entrypoint=cli. Bucket those under a meaningful label instead
-    of 'unknown', which otherwise hides real review cost (seen as high as 76% of a run).
+    Async in_process_teammate implementers (the default fan-out) carry entrypoint=cli and NO
+    attributionAgent/attributionSkill in their transcript, so the transcript-only heuristics
+    below misfile them as 'review' — the bug that made code-implementer cost read as ~0 while
+    'review' absorbed it. Their `.meta.json` records the true `customAgentType`
+    (e.g. code-implementer), which we trust over everything else. `agentType` is the per-task
+    instance slug (api-backend, macos, …), NOT the type — never bucket by it."""
+    meta = path.parent / (path.stem + ".meta.json")
+    try:
+        d = json.loads(meta.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+    t = d.get("customAgentType")
+    return t if isinstance(t, str) and t else None
+
+
+def _agent_type_of(path):
+    """Agent type for a subagent transcript, in priority order:
+
+      1. `.meta.json` customAgentType   -- authoritative; the ONLY signal that identifies async
+         in_process_teammate implementers (no attribution in-transcript).
+      2. attributionSkill code-review/security-review -> 'review'  -- the review fan-out agents
+         carry attributionAgent=general-purpose but ARE review cost, so the skill wins over the
+         agent here.
+      3. attributionAgent               -- Explore / Plan / general-purpose research agents.
+      4. attributionSkill (other)       -- labelled skill:<name>.
+      5. entrypoint=cli -> 'review'     -- legacy last-resort for un-metadata'd cli review agents.
     """
-    askill = entry = None
+    mt = _meta_agent_type(path)
+    if mt:
+        return mt
+    askill = entry = attr = None
     for line in _read_lines(path):
         try:
             o = json.loads(line)
         except json.JSONDecodeError:
             continue
-        a = o.get("attributionAgent")
-        if a:
-            return a if isinstance(a, str) else json.dumps(a)
+        if attr is None:
+            a = o.get("attributionAgent")
+            if a:
+                attr = a if isinstance(a, str) else json.dumps(a)
         if askill is None:
             askill = o.get("attributionSkill")
         if entry is None:
             entry = o.get("entrypoint")
+        if attr is not None and askill is not None and entry is not None:
+            break
+    if askill in ("code-review", "security-review"):
+        return "review"
+    if attr:
+        return attr
     if askill:
-        return f"skill:{askill}" if isinstance(askill, str) else "review"
+        return f"skill:{askill}"
     if entry == "cli":
         return "review"  # /code-review + /security-review internal subagents
     return "unknown"
@@ -262,16 +298,20 @@ def cmd_record(a):
             "review_fix": a.review_fix,
         })
     else:  # run
-        # fix activity is DERIVED from this run's already-logged agent records (their rework /
-        # review_fix tags), not trusted from the CLI: the hand-entered count conflated rework with
-        # healthy review-fixes. --fix-iterations survives only as an explicit override.
-        rework_n, rfix_n = fix_counts_for_run(a.run_id, load(log_path()))
+        # fix activity + parallel width are DERIVED from this run's already-logged agent records,
+        # not trusted from the CLI: the hand-entered count conflated rework with healthy
+        # review-fixes. --fix-iterations survives only as an explicit override.
+        prior = load(log_path())
+        rework_n, rfix_n = fix_counts_for_run(a.run_id, prior)
         fix_iters = a.fix_iterations if a.fix_iterations is not None else rework_n
+        widths = wave_widths_for_run(a.run_id, prior)
         rec.update({
             "branch": a.branch,
             "milestone": a.milestone,
             "waves": a.waves,
             "agents_total": a.agents,
+            "wave_widths": widths,              # per-wave agent counts (derived)
+            "peak_width": max(widths) if widths else None,  # max concurrency; ==1 => serial (W>=2 gate)
             "fix_iterations": fix_iters,        # = rework agents (derived) unless overridden
             "rework_agents": rework_n,          # re-delegations after a failed self-verify
             "review_fix_agents": rfix_n,        # review findings routed to fix tasks (healthy)
@@ -368,6 +408,24 @@ def fix_counts_for_run(run_id, records):
     return rework, rfix
 
 
+def wave_widths_for_run(run_id, records):
+    """Per-wave agent counts for a run, ordered by wave, derived from its agent records.
+
+    peak width = max(widths) = the most agents that ran concurrently in any single wave.
+    peak == 1 means the run NEVER had two agents in parallel — it was serial work in a
+    parallel costume and should not have used /orchestrate (the W>=2 hard gate). This is the
+    honest measure of parallel utilization; the `agents/waves` average hides a lone wide wave
+    among many 1-agent ones."""
+    by_wave = defaultdict(int)
+    for r in records:
+        if r.get("type") != "agent" or r.get("run_id") != run_id:
+            continue
+        w = r.get("wave")
+        if w is not None:
+            by_wave[w] += 1
+    return [by_wave[w] for w in sorted(by_wave)]
+
+
 def cmd_report(a):
     recs = load(log_path())
     if not recs:
@@ -428,6 +486,16 @@ def cmd_report(a):
         avg_rework = sum(rework_by_run[r.get("run_id")] for r in runs) / nruns
         avg_rfix = sum(rfix_by_run[r.get("run_id")] for r in runs) / nruns
 
+        # Parallel width derived from agent wave records (authoritative; works for runs logged
+        # before peak_width existed). peak==1 = serial work that should not have been orchestrated.
+        peaks = []
+        for r in runs:
+            w = wave_widths_for_run(r.get("run_id"), agents)
+            if w:
+                peaks.append(max(w))
+        avg_peak = sum(peaks) / len(peaks) if peaks else 0
+        serial = sum(1 for p in peaks if p == 1)
+
         pr = sum(1 for r in runs if r.get("pr_created"))
         bf = sum(1 for r in runs if r.get("build_final") == "pass")
         tf = sum(1 for r in runs if r.get("tests_final") == "pass")
@@ -435,6 +503,7 @@ def cmd_report(a):
         print("  outcome:        " + ", ".join(f"{k}={v}" for k, v in oc.items()))
         print(f"  avg waves:      {avg('waves')}")
         print(f"  avg agents:     {avg('agents_total')}")
+        print(f"  avg peak width: {avg_peak:.1f}   serial runs (peak==1, W>=2 gate says don't orchestrate): {serial}/{len(runs)}")
         print(f"  avg rework/run:     {avg_rework:.2f}   <- derived from agent tags; high = self-verify failures, briefs/partition need work")
         print(f"  avg review-fix/run: {avg_rfix:.2f}   (healthy: review findings routed to fix tasks)")
         print(f"  build_final ok: {pct(bf, len(runs))}   tests_final ok: {pct(tf, len(runs))}   pr_created: {pct(pr, len(runs))}")
