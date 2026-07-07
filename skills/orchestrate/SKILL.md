@@ -140,10 +140,39 @@ N is **discovered, not forced** — only split work that is genuinely independen
 
 ### 3. Dispatch a wave
 Spawn the wave's implementers **in a single message, one `Agent` call each**, so they run in
-parallel (`subagent_type: "code-implementer"`). Implementers (and the `verifier`) default to
-**Opus latest** via `model: opus` in their agent definitions — don't pass a `model` on the `Agent`
-call unless the user asks for a different tier for a specific task. Each gets a self-contained
-brief — implementers share no memory, so front-load everything:
+parallel (`subagent_type: "code-implementer"`). **Choose a model tier per task and pass it
+explicitly** as `model:` on each `Agent` call — this overrides the `opus` default pinned in the
+agent definition. The model is a per-task decision, **orthogonal to the file partition**: two
+implementers in the same wave may run different tiers.
+
+#### Model selection — match the tier to the task
+Weigh two axes against the model's scores:
+- **Intelligence** — how hard the *logic* is: subtle correctness, tricky edge cases, concurrency,
+  algorithms, or a design the brief doesn't fully pin down.
+- **Taste** — how much *human-facing design judgment* the output needs: public API/interface shape,
+  naming, UX, or code in a widely-read module.
+
+| Model | `model:` | Cost¹ | Int. | Taste | Route here when… |
+|---|---|---|---|---|---|
+| Fable 5   | `fable`  | 2  | 10 | 10 | *(unavailable for delegation — never route here)* |
+| Opus 4.8  | `opus`   | 5  | 8  | 8  | subtle correctness, non-trivial reasoning, or a design the brief doesn't pin down — **top available tier** |
+| Sonnet 5  | `sonnet` | 8  | 6  | 6  | standard, well-specified task with a clear pattern + tight criteria — **the workhorse default** |
+| Haiku 4.5 | `haiku`  | 10 | 4  | 3  | mechanical / deterministic: renames, moving files, config/JSON, boilerplate copying an obvious template |
+
+¹ **Cost is inverted — a higher number is cheaper.** Haiku (10) is the cheapest, Fable (2) the dearest.
+
+**The rule: pick the cheapest tier whose intelligence *and* taste both clear the task's bar** — don't
+overpay for a mechanical edit, don't starve a subtle one.
+- Both axes low → **Haiku**.
+- Standard, well-specified, pattern-following → **Sonnet** (most delegated work lands here).
+- Either axis genuinely high (hard logic *or* real design judgment) → **Opus**.
+- **Fable is not available for delegation — treat Opus as the ceiling; never pass `model: "fable"`.**
+
+**Escalate on rework.** If a cheaper-tier agent fails self-verify and you re-delegate it (a
+`--rework`), bump the fix one tier (Haiku→Sonnet→Opus): a cheap agent that reworked is a signal the
+task's bar was higher than you judged — don't re-run it at the same tier.
+
+Each implementer gets a self-contained brief — implementers share no memory, so front-load everything:
 
 ```
 ## Task
@@ -168,14 +197,19 @@ criteria and a clean file boundary, the task isn't ready — refine the partitio
 - A `blockers` entry naming a cross-boundary need means your partition was off — handle it (reassign
   ownership, add a serial step), don't ignore it.
 - Run the **full** build + test suite yourself (running commands is orchestration, not coding).
-- (Optional) spawn a `verifier` subagent against the acceptance criteria for a second opinion.
+- (Optional) spawn a `verifier` subagent against the acceptance criteria for a second opinion. It
+  does read-only acceptance-checking — no code output, no taste — so pass `model: "sonnet"`; reserve
+  `model: "opus"` for criteria that hinge on subtle correctness. (The reviews in step 5 pick their
+  own models internally; you don't set those.)
 - Anything red, or any `needs-attention`/`fail` verdict → **re-delegate a fix** to a fresh
   `code-implementer` (never patch inline). Loop back to step 3 until the wave is green.
 - **Log one `agent` record per implementer** (map the report → flags):
   ```bash
   python3 ~/.claude/skills/orchestrate/orchlog.py record --type agent --run-id "$run_id" \
     --wave 1 --task "add foo endpoint" --files-owned 3 --files-changed 3 \
-    --verdict pass --build pass --tests pass --isolation tree
+    --model sonnet --verdict pass --build pass --tests pass --isolation tree
+  # --model <tier> = the model you routed this task to (opus|sonnet|haiku); feeds the model-fit
+  #                  signal in `report` (see "Analyzing the harness"). Always record it.
   # flags to add when true: --deviated (deviations!=none)  --blockers (blockers!=none)
   #                         --boundary-stop (STOPped on a cross-boundary need)
   #                         --rework      (re-delegated after the agent's own work failed self-verify)
@@ -236,6 +270,8 @@ is an orchestrator action, like running build/test.
 - **Bounded autonomy** — agents have a hard file boundary and a STOP-and-report rule; that is what
   lets them run in parallel safely and keeps humans out of the loop until a real decision is needed.
 - **Fixes are always re-delegated** — never inline-patch; the fix gets the same boundary + gate.
+- **Right-size the model** — each task gets the cheapest tier that clears its intelligence + taste
+  bar (step 3's table); escalate a tier on rework.
 
 ## Analyzing the harness (closing the loop)
 Periodically review accumulated runs to improve this workflow and the agent definitions:
@@ -256,6 +292,13 @@ they can't be inflated by a stale hand-entered count.
 any `peak_width == 1` run paid full orchestration overhead and banked no parallelism (it violated the
 `W ≥ 2` gate in step 1 and should have been a normal session or a single implementer). Watch this
 alongside the cost block: a peak==1 run is pure orchestrator overhead with nothing to amortize it.
+
+**Model-fit signal** (the AGENT block's `model:` + `rework by model:` lines): checks whether the
+step-3 routing is calibrated. **Rework clustered in a cheap tier** (e.g. `haiku=2/3`) → you're routing
+too aggressively — those tasks' bars were higher than judged; lean harder on the escalation rule or
+default them a tier up. **Everything on `opus`** → the routing isn't banking the cost the table
+offers; more tasks likely belong on Sonnet/Haiku. Read it next to the COST block — the two together
+say whether cheaper models are saving tokens without buying rework.
 
 **Cost signals** (the COST block, captured automatically): **output by type** shows where tokens go —
 if `orchestrator` dominates, the orchestration overhead itself is the cost (the fix is to delegate

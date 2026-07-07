@@ -33,7 +33,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-WORKFLOW_VERSION = "1.7.0"  # bump when the kit's architecture/log schema changes
+WORKFLOW_VERSION = "1.8.0"  # bump when the kit's architecture/log schema changes
 
 
 def log_path():
@@ -291,6 +291,7 @@ def cmd_record(a):
             "had_blockers": a.blockers,
             "boundary_stop": a.boundary_stop,
             "isolation": a.isolation,
+            "model": a.model,  # tier ORCH routed this task to (opus|sonnet|haiku); model-fit signal
             # rework = re-delegated because the implementer's own work failed self-verify
             # (a quality signal); review_fix = delegated a review finding (healthy, expected).
             # --redelegated is a deprecated alias that folds into rework.
@@ -513,6 +514,7 @@ def cmd_report(a):
         n = len(agents)
         vd = Counter(r.get("verdict") for r in agents)
         iso = Counter(r.get("isolation") for r in agents)
+        mdl = Counter(r.get("model") for r in agents if r.get("model"))
         bstop = sum(1 for r in agents if r.get("boundary_stop"))
         rework = sum(1 for r in agents if _is_rework(r))
         rfix = sum(1 for r in agents if r.get("review_fix"))
@@ -526,6 +528,17 @@ def cmd_report(a):
         print(f"  deviated:       {pct(dev, n)}   <- high = acceptance criteria not tight enough")
         print(f"  had_blockers:   {pct(blk, n)}")
         print("  isolation:      " + ", ".join(f"{k}={v}" for k, v in iso.items()))
+        if mdl:
+            print("  model:          " + ", ".join(f"{k}={v}" for k, v in mdl.items()))
+            rw_by = {}
+            for r in agents:
+                m = r.get("model")
+                if not m:
+                    continue
+                tot, rwk = rw_by.get(m, (0, 0))
+                rw_by[m] = (tot + 1, rwk + (1 if _is_rework(r) else 0))
+            print("  rework by model: " + ", ".join(f"{k}={rwk}/{tot}" for k, (tot, rwk) in rw_by.items())
+                  + "   <- rework clustered in a cheap tier = routed too aggressive")
         print()
 
     # ---- cost (tokens) ----
@@ -585,6 +598,8 @@ def main():
     r.add_argument("--blockers", action="store_true", help="had blockers")
     r.add_argument("--boundary-stop", action="store_true", dest="boundary_stop")
     r.add_argument("--isolation", choices=["tree", "worktree"], default="tree")
+    r.add_argument("--model", choices=["fable", "opus", "sonnet", "haiku"], default=None,
+                   help="model tier this implementer ran on (feeds the model-fit signal in report)")
     r.add_argument("--rework", action="store_true",
                    help="re-delegated because the implementer's own work failed self-verify (quality signal)")
     r.add_argument("--review-fix", action="store_true", dest="review_fix",
