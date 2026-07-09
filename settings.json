@@ -43,6 +43,7 @@
     "ask": [],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -107,7 +108,8 @@
     "slack@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": false,
     "workflow@local": false,
-    "vercel@claude-plugins-official": false
+    "vercel@claude-plugins-official": false,
+    "caveman@caveman": true
   },
   "extraKnownMarketplaces": {
     "local": {
@@ -120,6 +122,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
       }
     }
   },
@@ -145,6 +153,5 @@
   "teammateMode": "in-process",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "model": "sonnet"
+  "skipAutoPermissionPrompt": true
 }
