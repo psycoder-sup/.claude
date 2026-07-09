@@ -90,11 +90,19 @@ out from under your work. Never do it.
 - **Worth orchestrating? (hard gate — a pure parallel-width call.)** With the worktree ready,
   compute the **parallel width** `W` = the most *independent* tasks (disjoint file sets) that could
   run together in a single wave. Then apply the rule mechanically:
-  - **`W == 1` → do NOT orchestrate.** This covers both a single task *and* work that only runs
-    one-at-a-time (every wave has one agent, i.e. `agents == waves` — sequential work in a parallel
-    costume). Say so to the user and either do the work in a normal session (`ExitWorktree` to drop
-    the fresh worktree — an unchanged one auto-cleans) or dispatch **one** `code-implementer` without
-    the wave machinery.
+  - **`W == 1` → STOP. Do NOT orchestrate — exit the skill *before* you mint a run_id.** This covers
+    both a single task *and* work that only runs one-at-a-time (every wave has one agent, i.e.
+    `agents == waves` — sequential work in a parallel costume). There is no "orchestrate it anyway
+    because I'm already in the worktree" branch. Tell the user the work is serial, then either do it in
+    a normal session (`ExitWorktree` to drop the fresh worktree — an unchanged one auto-cleans) or
+    dispatch **one** `code-implementer` with no wave machinery, no run record, no review loop. This is
+    a pre-flight gate: run it to a verdict here, and only a `W ≥ 2` verdict continues past this bullet
+    to the run-id line below.
+    - **Fast-path — a single feedback item or bug fix is `W == 1` by default.** "Fix feedback #N",
+      "fix the `<X>` bug", one-screen / one-file corrections: this is serial single-file work wearing a
+      task costume. Route it straight to one `code-implementer` and skip `/orchestrate` entirely —
+      unless you can concretely name **≥2 disjoint-file tasks that run at the same time**. (This exact
+      pattern is where the gate leaked most in practice — see below.)
   - **`W ≥ 2` → orchestrate.** At least one wave has genuine parallel work to bank against the
     overhead.
 
@@ -106,8 +114,12 @@ out from under your work. Never do it.
   attribution is trustworthy), the orchestrator *alone* is ~77% of output tokens (planning + per-agent
   briefs + integration + running reviews), with `code-implementer` output ~15% and review ~6%. That
   overhead pays off **only** when parallel work runs concurrently; at `W == 1` you pay it in full and
-  bank nothing. Do not soften this gate by planning less to shrink the orchestrator's share — planning
-  stays thorough. The only lever is *not orchestrating serial work in the first place*.
+  bank nothing — and this **leaks in practice**: across logged runs, **1 in 4 (25%) had
+  `peak_width == 1`**, burning ~10% of all output tokens on orchestration overhead with no parallelism
+  to amortize it, and nearly all of them were single "feedback #N / bug fix" tasks. Stopping those at
+  the pre-flight gate above is exactly what this check is for. Do not soften this gate by planning less
+  to shrink the orchestrator's share — planning stays thorough. The only lever is *not orchestrating
+  serial work in the first place*.
 - Decompose the work into independent **tasks**. If a plan file was passed as the argument,
   start from it; otherwise build the plan with the user (use plan mode for anything non-trivial).
 - Build a **file-ownership map**: for each task, the set of files it will create/modify.
