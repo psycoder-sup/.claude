@@ -5,6 +5,7 @@ if [ -f "$config_file" ]; then
 else
   SHOW_SESSION_ID=1 SHOW_DIRECTORY=1 SHOW_BRANCH=1 SHOW_MODEL=1
   SHOW_CONTEXT=1 SHOW_USAGE=1 SHOW_PROGRESS_BAR=1 SHOW_RESET_TIME=1
+  SHOW_CAVEMAN=1
 fi
 
 input=$(cat)
@@ -113,6 +114,38 @@ if [ "$SHOW_BRANCH" = "1" ]; then
   fi
 fi
 
+# Caveman mode badge, mirrors the caveman plugin's own statusline script
+# (src/hooks/caveman-statusline.sh) without depending on its plugin-cache
+# path, which is versioned by a content hash and moves on plugin update.
+caveman_text=""
+if [ "$SHOW_CAVEMAN" = "1" ]; then
+  caveman_config_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  caveman_flag="${caveman_config_dir}/.caveman-active"
+  # Refuse symlinks: a local attacker could point the flag at a sensitive
+  # file and have the statusline render its bytes to the terminal.
+  if [ ! -L "$caveman_flag" ] && [ -f "$caveman_flag" ]; then
+    caveman_mode=$(head -c 64 "$caveman_flag" 2>/dev/null | tr -d '\n\r' | tr '[:upper:]' '[:lower:]')
+    caveman_mode=$(printf '%s' "$caveman_mode" | tr -cd 'a-z0-9-')
+    case "$caveman_mode" in
+      off|lite|full|ultra|wenyan-lite|wenyan|wenyan-full|wenyan-ultra|commit|review|compress)
+        if [ -z "$caveman_mode" ] || [ "$caveman_mode" = "full" ]; then
+          caveman_badge="CAVEMAN"
+        else
+          caveman_badge="CAVEMAN:$(printf '%s' "$caveman_mode" | tr '[:lower:]' '[:upper:]')"
+        fi
+        if [ "${CAVEMAN_STATUSLINE_SAVINGS:-1}" != "0" ]; then
+          caveman_suffix_file="${caveman_config_dir}/.caveman-statusline-suffix"
+          if [ -f "$caveman_suffix_file" ] && [ ! -L "$caveman_suffix_file" ]; then
+            caveman_savings=$(head -c 64 "$caveman_suffix_file" 2>/dev/null | tr -d '\000-\037')
+            [ -n "$caveman_savings" ] && caveman_badge="${caveman_badge} ${caveman_savings}"
+          fi
+        fi
+        caveman_text=$(make_pill 172 16 "$caveman_badge")
+        ;;
+    esac
+  fi
+fi
+
 # Line 2: context | 5h | 7d
 context_text=""
 if [ "$SHOW_CONTEXT" = "1" ]; then
@@ -166,7 +199,7 @@ line1=""
 line2=""
 separator="${DIM} │ ${RESET}"
 
-line1_pills=("$session_text" "$model_text" "$dir_text" "$branch_text")
+line1_pills=("$session_text" "$model_text" "$dir_text" "$branch_text" "$caveman_text")
 line1_pill_lens=()
 for p in "${line1_pills[@]}"; do
   if [ -n "$p" ]; then
