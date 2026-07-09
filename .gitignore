@@ -42,7 +42,8 @@ policy-limits.json
 .last-update-result.json
 
 daemon
-daemon.log
+daemon.*
+daemon-*
 jobs
 
 # /orchestrate run log (runtime state; skills/orchestrate/ stays tracked)
@@ -50,4 +51,7 @@ jobs
 
 # tian run log (runtime state; skills/tian/ stays tracked)
 /tian/
+
+# EnterWorktree working copies (runtime state)
+/.claude/worktrees/
 

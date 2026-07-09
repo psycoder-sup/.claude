@@ -12,6 +12,10 @@ trigger: /orchestrate-cleanup
 user-invocable: true
 argument-hint: "[branch or PR-title override] — usually none; infers the current worktree branch"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
+# Cleanup is mechanical (PR → poll CI → merge on green → clean up) and never writes/fixes code,
+# so it runs on the cost tier. The only judgment-heavy path is shared-doc conflict resolution
+# during rebase (status.json / ADR renumber); escalate that manually if it gets hairy.
+model: sonnet
 ---
 
 # /orchestrate-cleanup
